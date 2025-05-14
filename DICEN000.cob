@@ -1,0 +1,13 @@
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID. DICEN000.
+       AUTHOR.     Markku Sukanen
+
+       DATA DIVISION.
+      
+       LINKAGE SECTION.
+       
+       01  LK-RET-RND      USAGE IS COMP-1.
+
+       PROCEDURE DIVISION USING LK-RET-RND.
+           COMPUTE LK-RET-RND = FUNCTION RANDOM
+           GOBACK.
