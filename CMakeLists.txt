@@ -5,11 +5,12 @@ set(COBOL_SOURCE WRAPPER.cob MAIN.cob DICER*.cob DICEN*.cob ?D6.cob)
 
 set(COBOL_COMPILER cobc)
 set(COBOL_FLAGS -x)
+set(COBOL_DEBUG )
 set(OUT_EXE g4ssg)
 
 add_custom_command(
     OUTPUT ${OUT_EXE}
-    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} -o ${OUT_EXE} ${COBOL_SOURCE}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${OUT_EXE} ${COBOL_SOURCE}
     DEPENDS ${COBOL_SOURCE}
     COMMENT "Compiling G4SSG ..."
 )
