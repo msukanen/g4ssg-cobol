@@ -26,10 +26,21 @@
            05  PARSED-FIELD        PIC X(20).
            05  REMAINING-STRING    PIC X(100).
            05  PARM-INDEX          PIC 9(3) VALUE 1.
-           05  CURRENT-PARM-NUM    PIC 9(4) VALUE 0.
+      *    05  CURRENT-PARM-NUM    PIC 9(4) VALUE 0.
       *********
       * Star system data goes here:
-      *********    
+      *********
+      *    Evolution info is read from a CSV file, SPECS.csv
+       01  EVOLUTION OCCURS 34 TIMES
+           INDEXED BY EVO-INDEX.
+           02  EVO-MASS         PIC 9V99.
+           02  EVO-APPROX-TYPE  PIC X9.
+           02  EVO-AVG-TEMP     PIC 9(4)V9.
+           02  EVO-L-MIN        PIC 99V9(4).
+           02  EVO-L-MAX        PIC 99V99.
+           02  EVO-M-SPAN       PIC 99V9.
+           02  EVO-S-SPAN       PIC 9V9.
+           02  EVO-G-SPAN       PIC 9V9.
        01  MASS-INDEX-OFFSET    PIC 99.
        01  STAR-INDEX           PIC 99.
        01  CREATING-COMPANION   PIC X VALUE 'N'.
@@ -37,16 +48,18 @@
            05 IN-CLUSTER-OR-CORE   PIC X VALUE 'N'.
            05 STAR-SYSTEM-NAME     PIC X(48).
       *       Stellar populations, in order of general age:
-      *         E1, Y1, I1, O1, I2, E2
+      *            E1, Y1, I1, O1, I2, and E2.
            05 STELLAR-POPULATION   PIC XX.
+      *       Stellar age is in BYR (billions of years).
            05 STELLAR-AGE          PIC 9(2)V9(2).
            05 NUM-OF-STARS         PIC 99.
            05 STAR OCCURS 1 TO 10 TIMES DEPENDING ON NUM-OF-STARS.
       * A-Z/##/###, or SPACE
                10 ORDERING             PIC X(3) VALUE SPACES.
       * Mass-index 0-33. Negative numbers are reserved for future use.
-               10 MASS-INDEX           PIC 99.
+               10 MASS-INDEX           INDEX.
                10 STAR-MASS            PIC 9V9(2).
+               10 STAR-TEMP            PIC 9(5)V9.
 
        LINKAGE SECTION.
       *********
@@ -76,18 +89,18 @@
                    MOVE 'Y' TO IN-CLUSTER-OR-CORE
                    DISPLAY 'Generating system in a cluster/core.'
                END-IF
-
-               ADD 1 TO CURRENT-PARM-NUM
-      D        DISPLAY PARM-INDEX ' is ' CURRENT-PARM-NUM
-      D                ': [' PARSED-FIELD ']'
            END-PERFORM.
 
+      *    Generate star system global specs.
            PERFORM DETERMINE-NUM-STARS.
+           PERFORM DETERMINE-STELLAR-AGE.
+      
+      *    Generate star-specific data.
            MOVE 1 TO STAR-INDEX.
            PERFORM DETERMINE-MASS-INDEX.
            PERFORM DETERMINE-MASS.
 
-           GOBACK.
+           EXIT PROGRAM.
 
       *********
       * Determine number of stars.
@@ -112,37 +125,37 @@
            CALL '3D6' USING DICEROLL.
            EVALUATE TRUE
                WHEN DICEROLL = 3
-                   MOVE 0 TO MASS-INDEX-OFFSET
+                   MOVE 1 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-2
                WHEN DICEROLL = 4
-                   MOVE 2 TO MASS-INDEX-OFFSET
+                   MOVE 3 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-3
                WHEN DICEROLL = 5
-                   MOVE 5 TO MASS-INDEX-OFFSET
+                   MOVE 6 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-4
                WHEN DICEROLL = 6
-                   MOVE 9 TO MASS-INDEX-OFFSET
+                   MOVE 10 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-5
                WHEN DICEROLL = 7
-                   MOVE 14 TO MASS-INDEX-OFFSET
+                   MOVE 15 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-5
                WHEN DICEROLL = 8
-                   MOVE 19 TO MASS-INDEX-OFFSET
+                   MOVE 20 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-5
                WHEN DICEROLL = 9
-                   MOVE 24 TO MASS-INDEX-OFFSET
+                   MOVE 25 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-3
                WHEN DICEROLL = 10
-                   MOVE 27 TO MASS-INDEX-OFFSET
+                   MOVE 28 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-3
                WHEN DICEROLL = 11
-                   MOVE 30 TO MASS-INDEX(STAR-INDEX)
-               WHEN DICEROLL = 12
                    MOVE 31 TO MASS-INDEX(STAR-INDEX)
-               WHEN DICEROLL = 13
+               WHEN DICEROLL = 12
                    MOVE 32 TO MASS-INDEX(STAR-INDEX)
-               WHEN OTHER
+               WHEN DICEROLL = 13
                    MOVE 33 TO MASS-INDEX(STAR-INDEX)
+               WHEN OTHER
+                   MOVE 34 TO MASS-INDEX(STAR-INDEX)
            END-EVALUATE
 
       *    If creating a companion star, we step mass-index deeper by
@@ -378,4 +391,83 @@
                    END-EVALUATE
                END-IF
            END-IF.
+           GOBACK.
+
+      *********
+      * Determine star's temperature in kelvins based on mass-index.
+      *********
+       DETERMINE-TEMPERATURE.
+           EVALUATE TRUE
+               WHEN MASS-INDEX(STAR-INDEX) = 33
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 32
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 31
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 30
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 29
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 28
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 27
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 26
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 25
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 24
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 23
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 22
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 21
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 20
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 19
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 18
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 17
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 16
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 15
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 14
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 13
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 12
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 11
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 10
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 9
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 8
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 7
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 6
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 5
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 4
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 3
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 2
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 1
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN MASS-INDEX(STAR-INDEX) = 0
+                   MOVE 3100.0 TO STAR-TEMP
+               WHEN OTHER
+      D            DISPLAY 'ERR: temperature not implemented for '
+      D                    'negative mass-index.'
+           END-EVALUATE.
            GOBACK.
