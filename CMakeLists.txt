@@ -5,7 +5,7 @@ set(COBOL_SOURCE
     WRAPPER.cob
     MAIN.cob
     DICER*.cob DICEN*.cob ?D6.cob
-    VARIANCE.cob
+    ALTERVAL.cob
 )
 
 set(COBOL_COMPILER cobc)

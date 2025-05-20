@@ -28,6 +28,8 @@
        01  TMP-INT                 PIC 9(5).
        01  TMP-NUM                 PIC 9(5)V9(5).
        01  WS-NUM-DICE             PIC S9(1) COMP-5.
+       01  TEN-PERCENT           PIC 9(5)V9(5) USAGE COMP-3 VALUE 10.0.
+       01  FIVE-PERCENT          PIC 9(5)V9(5) USAGE COMP-3 VALUE  5.0.
       *********
       * Parsed run params:
       *********
@@ -58,27 +60,27 @@
            02  WS-CSV-G-SPAN      PIC X(10).
        01  EVOLUTION OCCURS 34 TIMES                                    ^MAX-EVO
                INDEXED BY EVO-INDEX.
-           02  EVO-MASS         USAGE COMP-1.
+           02  EVO-MASS         PIC 9(5)V9(5) USAGE COMP-3.
            02  EVO-APPROX-TYPE  PIC X9.
-           02  EVO-AVG-TEMP     USAGE COMP-1.
-           02  EVO-L-MIN        USAGE COMP-1.
+           02  EVO-AVG-TEMP     PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-L-MIN        PIC 9(5)V9(5) USAGE COMP-3.
       *        L-Max of ZERO/- means there's no M/S/G spans and that
       *        the star's luminosity is determined by L-Min alone.
-           02  EVO-L-MAX        USAGE COMP-1.
+           02  EVO-L-MAX        PIC 9(5)V9(5) USAGE COMP-3.
       *        M-span of ZERO/- means that the star will remain main-
       *        sequence literally "forever". Lacking S/G-spans means
       *        that the star silently dwindles into D-class, which also
       *        happens if the star's age exceeds M+S+G-span total.
-           02  EVO-M-SPAN       USAGE COMP-1.
-           02  EVO-S-SPAN       USAGE COMP-1.
-           02  EVO-G-SPAN       USAGE COMP-1.
+           02  EVO-M-SPAN       PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-S-SPAN       PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-G-SPAN       PIC 9(5)V9(5) USAGE COMP-3.
        01  MASS-INDEX-OFFSET    PIC 99.
        01  STAR-INDEX           PIC 99.
-       01  L-MIN                USAGE COMP-1.
-       01  L-MAX                USAGE COMP-1.
-       01  M-SPAN               USAGE COMP-1.
-       01  S-SPAN               USAGE COMP-1.
-       01  G-SPAN               USAGE COMP-1.
+       01  L-MIN                PIC 9(5)V9(5) USAGE COMP-3.
+       01  L-MAX                PIC 9(5)V9(5) USAGE COMP-3.
+       01  M-SPAN               PIC 9(5)V9(5) USAGE COMP-3.
+       01  S-SPAN               PIC 9(5)V9(5) USAGE COMP-3.
+       01  G-SPAN               PIC 9(5)V9(5) USAGE COMP-3.
        01  CREATING-COMPANION   PIC X VALUE 'N'.
        01  STAR-SYSTEM.
            05  IN-CLUSTER-OR-CORE   PIC X VALUE 'N'.
@@ -87,7 +89,7 @@
       *            E1, Y1, I1, O1, I2, and E2.
            05  STELLAR-POPULATION   PIC XX.
       *        Stellar age is in BYR (billions of years).
-           05  STELLAR-AGE          PIC 9(2)V9(3) USAGE COMP-3.
+           05  STELLAR-AGE          PIC 9(5)V9(5) USAGE COMP-3.
            05  NUM-OF-STARS         PIC 99.
            05  STAR OCCURS 1 TO 10 TIMES DEPENDING ON NUM-OF-STARS.
       *            Ordering is: A-Z/##/###, or SPACE
@@ -95,12 +97,12 @@
       *            Mass-index, refers to EVOLUTION.
                10  MASS-INDEX           INDEX.
       *            Star stage is one of: D, V, IV, III.
-      * TODO:  There are of course others, but we're not generating
-      *        those (yet).
+      * TODO:  There are of course others stages/sizes, but we're not
+      *        generating those (yet).
                10  STAR-STAGE           PIC X(4).
-               10  STAR-MASS            PIC 9V9(2) USAGE COMP-3.        ×Sol
-               10  STAR-TEMP            PIC 9(6)V9 USAGE COMP-3.        K
-               10  STAR-LUMINOSITY      PIC 9(5)V9(4) USAGE COMP-3.     ×Sol
+               10  STAR-MASS            PIC 9(5)V9(5) USAGE COMP-3.     ×Sol
+               10  STAR-TEMP            PIC 9(5)V9(5) USAGE COMP-3.     K
+               10  STAR-LUMINOSITY      PIC 9(5)V9(5) USAGE COMP-3.     ×Sol
 
        LINKAGE SECTION.
       *********
@@ -137,7 +139,8 @@
 
       *    Read and parse evolution specs.csv, line by line.
            OPEN INPUT CSV-FILE.
-           PERFORM VARYING EVO-INDEX FROM 1 BY 1 UNTIL EVO-INDEX > 34
+           PERFORM VARYING EVO-INDEX
+               FROM 1 BY 1 UNTIL EVO-INDEX > MAX-EVO
                READ CSV-FILE INTO CSV-LINE
                    NOT AT END
                        PERFORM PARSE-CSV
@@ -151,9 +154,11 @@
       
       *    Generate star-specific data.
            MOVE 1 TO STAR-INDEX.
+           PERFORM DETERMINE-ORDERING.
            PERFORM DETERMINE-MASS-INDEX.
            PERFORM DETERMINE-MASS.
            PERFORM DETERMINE-STAR-STAGE.
+           PERFORM DETERMINE-LUMINOSITY.
 
            EXIT PROGRAM.
 
@@ -205,7 +210,7 @@
                COMPUTE EVO-G-SPAN(EVO-INDEX) =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-G-SPAN))
            END-IF
-      D    DISPLAY CSV-LINE ' -- unstrung successfully.'
+      D    DISPLAY CSV-LINE
            EXIT.
 
       *********
@@ -234,7 +239,7 @@
            CALL '3D6' USING DICEROLL.
            EVALUATE TRUE
                WHEN DICEROLL = 3
-                   MOVE 1 TO MASS-INDEX-OFFSET
+      *            MOVE 1 TO MASS-INDEX-OFFSET
                    PERFORM DETERMINE-MASS-INDEX-2
                WHEN DICEROLL = 4
                    MOVE 3 TO MASS-INDEX-OFFSET
@@ -268,16 +273,17 @@
            END-EVALUATE
 
       *    If creating a companion star, we step mass-index deeper by
-      *    1d6-1 steps (capping to 33).
+      *    1d6-1 steps (capping to MAX-EVO).
            IF CREATING-COMPANION = 'Y' THEN
                CALL '1D6' USING DICEROLL
                COMPUTE TMP-INT = MASS-INDEX(STAR-INDEX) + DICEROLL - 1
-               IF TMP-INT > 33 THEN
-                   MOVE 33 TO TMP-INT
+               IF TMP-INT > MAX-EVO THEN
+                   MOVE MAX-EVO TO TMP-INT
                END-IF
                MOVE TMP-INT TO MASS-INDEX(STAR-INDEX)
                MOVE 'N' TO CREATING-COMPANION
            END-IF
+      D    DISPLAY 'MASS-INDEX(' STAR-INDEX '): ' MASS-INDEX(STAR-INDEX)
            EXIT.
 
       *********
@@ -286,9 +292,9 @@
        DETERMINE-MASS-INDEX-2.
            CALL '3D6' USING DICEROLL.
            IF DICEROLL IS LESS OR EQUAL TO 10
-               MOVE 0 TO MASS-INDEX(STAR-INDEX)
-           ELSE
                MOVE 1 TO MASS-INDEX(STAR-INDEX)
+           ELSE
+               MOVE 2 TO MASS-INDEX(STAR-INDEX)
            END-IF.
            EXIT.
        DETERMINE-MASS-INDEX-3.
@@ -319,7 +325,7 @@
                        = 2 + MASS-INDEX-OFFSET
                WHEN OTHER
                    COMPUTE MASS-INDEX(STAR-INDEX)
-                        = 3 + MASS-INDEX-OFFSET
+                       = 3 + MASS-INDEX-OFFSET
            END-EVALUATE.
            EXIT.
        DETERMINE-MASS-INDEX-5.
@@ -349,7 +355,8 @@
        DETERMINE-MASS.
            MOVE EVO-MASS(MASS-INDEX(STAR-INDEX))
                 TO STAR-MASS(STAR-INDEX)
-      D    DISPLAY 'Mass: ' STAR-MASS(STAR-INDEX) ' Sol.'
+      D    DISPLAY 'STAR-MASS(' STAR-INDEX '): '
+                   STAR-MASS(STAR-INDEX)' Sol.'
            EXIT.
 
       *********
@@ -359,7 +366,7 @@
            IF NUM-OF-STARS = 1 THEN
       *        Ordering is "meaningless" when there's only one star.
                INITIALIZE ORDERING(1)
-               GOBACK
+               EXIT
            END-IF.
 
            EVALUATE TRUE
@@ -414,8 +421,6 @@
                    COMPUTE STELLAR-AGE
                            = (DICEROLL - 1) * 0.6
                            + (TMP-INT - 1) * 0.1
-      D            DISPLAY 'D: ' DICEROLL
-      D            DISPLAY 'T: ' TMP-INT
                    EVALUATE TRUE
                        WHEN DICEROLL IS LESS OR EQUAL TO 10
                            MOVE 'I1' TO STELLAR-POPULATION
@@ -469,6 +474,8 @@
                     END-IF
                END-IF
            END-IF
+      D    DISPLAY 'STAR-STAGE(' STAR-INDEX '): '
+                   STAR-STAGE(STAR-INDEX)
            EXIT.
 
       *********
@@ -479,12 +486,12 @@
            EVALUATE TRUE
                WHEN STAR-STAGE(STAR-INDEX) = 'V'
                    IF EVO-L-MAX(MASS-INDEX(STAR-INDEX)) = NOT-AVAILABLE
-                       CALL 'VALUE-VARIANCE-BY'
-                           USING 10,
+                       CALL 'ALTER-VALUE-BY-PERCENTAGE'
+                           USING TEN-PERCENT,
                                  EVO-L-MIN(MASS-INDEX(STAR-INDEX)),
-                                 TMP-NUM
-                       COMPUTE STAR-LUMINOSITY(STAR-INDEX)
-                           = FUNCTION NUMVAL(TMP-NUM)
+                                 STAR-LUMINOSITY(STAR-INDEX)
                    END-IF
            END-EVALUATE
+      D    DISPLAY 'STAR-LUMINOSITY(' STAR-INDEX '): '
+                   STAR-LUMINOSITY(STAR-INDEX)
            EXIT.
