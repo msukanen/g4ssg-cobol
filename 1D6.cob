@@ -14,5 +14,6 @@
       *
       ******************************************************************
        PROCEDURE DIVISION USING LK-RET-RND.
+           INITIALIZE LK-RET-RND
            COMPUTE LK-RET-RND = LK-RET-RND + (FUNCTION RANDOM * 6) + 1
            GOBACK.

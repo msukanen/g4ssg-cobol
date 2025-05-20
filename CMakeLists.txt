@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
 project(G4SSG)
 
-set(COBOL_SOURCE WRAPPER.cob MAIN.cob DICER*.cob DICEN*.cob ?D6.cob)
+set(COBOL_SOURCE
+    WRAPPER.cob
+    MAIN.cob
+    DICER*.cob DICEN*.cob ?D6.cob
+    VARIANCE.cob
+)
 
 set(COBOL_COMPILER cobc)
 set(COBOL_FLAGS -x)
 set(COBOL_DEBUG )
-set(OUT_EXE g4ssg)
+set(OUT_EXE bin/g4ssg)
 
 add_custom_command(
     OUTPUT ${OUT_EXE}

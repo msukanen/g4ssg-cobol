@@ -1,14 +1,23 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID. G4SSGCRE.
        AUTHOR.     Markku Sukanen.
+      ******************************************************************
+      * Star system generator, based on "GURPS 4e Space" rules.
+      ******************************************************************
        
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
-       SOURCE-COMPUTER. WIN11 WITH DEBUGGING MODE.
-      *INPUT-OUTPUT SECTION.
-      *FILE-CONTROL.
+       SOURCE-COMPUTER. WSL WITH DEBUGGING MODE.
+       INPUT-OUTPUT SECTION.
+       FILE-CONTROL.
+           SELECT CSV-FILE ASSIGN TO "data/SPECS.csv"
+               ORGANIZATION IS LINE SEQUENTIAL.
+
        DATA DIVISION.
-      *FILE-SECTION.
+       FILE SECTION.
+       FD  CSV-FILE.
+       01  CSV-RECORD.
+           05  CSV-LINE            PIC X(50).
 
        WORKING-STORAGE SECTION.
       *********
@@ -17,6 +26,7 @@
       *01  RND-SEED-VALUE          PIC 9(4) COMP-5 VALUE 0.
        01  DICEROLL                PIC 9(5).
        01  TMP-INT                 PIC 9(5).
+       01  TMP-NUM                 PIC 9(5)V9(5).
        01  WS-NUM-DICE             PIC S9(1) COMP-5.
       *********
       * Parsed run params:
@@ -28,38 +38,69 @@
            05  PARM-INDEX          PIC 9(3) VALUE 1.
       *    05  CURRENT-PARM-NUM    PIC 9(4) VALUE 0.
       *********
+      * Misc. variables.
+      *********
+       77  MAX-EVO                 PIC 99 VALUE 34.                     CONSTANT
+       77  INF-LIFESPAN            PIC 9(5)V9 VALUE 99999.9.            CONSTANT
+       77  NOT-AVAILABLE           PIC 9V9 VALUE 0.0.                   CONSTANT
+      *********
       * Star system data goes here:
       *********
-      *    Evolution info is read from a CSV file, SPECS.csv
-       01  EVOLUTION OCCURS 34 TIMES
-           INDEXED BY EVO-INDEX.
-           02  EVO-MASS         PIC 9V99.
+      *    Evolution info is read from a CSV file.
+       01  WS-EVO-CSV.
+           02  WS-CSV-MASS        PIC X(10).
+           02  WS-CSV-APPROX-TYPE PIC X(10).
+           02  WS-CSV-AVG-TEMP    PIC X(10).
+           02  WS-CSV-L-MIN       PIC X(10).
+           02  WS-CSV-L-MAX       PIC X(10).
+           02  WS-CSV-M-SPAN      PIC X(10).
+           02  WS-CSV-S-SPAN      PIC X(10).
+           02  WS-CSV-G-SPAN      PIC X(10).
+       01  EVOLUTION OCCURS 34 TIMES                                    ^MAX-EVO
+               INDEXED BY EVO-INDEX.
+           02  EVO-MASS         USAGE COMP-1.
            02  EVO-APPROX-TYPE  PIC X9.
-           02  EVO-AVG-TEMP     PIC 9(4)V9.
-           02  EVO-L-MIN        PIC 99V9(4).
-           02  EVO-L-MAX        PIC 99V99.
-           02  EVO-M-SPAN       PIC 99V9.
-           02  EVO-S-SPAN       PIC 9V9.
-           02  EVO-G-SPAN       PIC 9V9.
+           02  EVO-AVG-TEMP     USAGE COMP-1.
+           02  EVO-L-MIN        USAGE COMP-1.
+      *        L-Max of ZERO/- means there's no M/S/G spans and that
+      *        the star's luminosity is determined by L-Min alone.
+           02  EVO-L-MAX        USAGE COMP-1.
+      *        M-span of ZERO/- means that the star will remain main-
+      *        sequence literally "forever". Lacking S/G-spans means
+      *        that the star silently dwindles into D-class, which also
+      *        happens if the star's age exceeds M+S+G-span total.
+           02  EVO-M-SPAN       USAGE COMP-1.
+           02  EVO-S-SPAN       USAGE COMP-1.
+           02  EVO-G-SPAN       USAGE COMP-1.
        01  MASS-INDEX-OFFSET    PIC 99.
        01  STAR-INDEX           PIC 99.
+       01  L-MIN                USAGE COMP-1.
+       01  L-MAX                USAGE COMP-1.
+       01  M-SPAN               USAGE COMP-1.
+       01  S-SPAN               USAGE COMP-1.
+       01  G-SPAN               USAGE COMP-1.
        01  CREATING-COMPANION   PIC X VALUE 'N'.
        01  STAR-SYSTEM.
-           05 IN-CLUSTER-OR-CORE   PIC X VALUE 'N'.
-           05 STAR-SYSTEM-NAME     PIC X(48).
-      *       Stellar populations, in order of general age:
+           05  IN-CLUSTER-OR-CORE   PIC X VALUE 'N'.
+           05  STAR-SYSTEM-NAME     PIC X(48).
+      *        Stellar populations, in order of general age:
       *            E1, Y1, I1, O1, I2, and E2.
-           05 STELLAR-POPULATION   PIC XX.
-      *       Stellar age is in BYR (billions of years).
-           05 STELLAR-AGE          PIC 9(2)V9(2).
-           05 NUM-OF-STARS         PIC 99.
-           05 STAR OCCURS 1 TO 10 TIMES DEPENDING ON NUM-OF-STARS.
-      * A-Z/##/###, or SPACE
-               10 ORDERING             PIC X(3) VALUE SPACES.
-      * Mass-index 0-33. Negative numbers are reserved for future use.
-               10 MASS-INDEX           INDEX.
-               10 STAR-MASS            PIC 9V9(2).
-               10 STAR-TEMP            PIC 9(5)V9.
+           05  STELLAR-POPULATION   PIC XX.
+      *        Stellar age is in BYR (billions of years).
+           05  STELLAR-AGE          PIC 9(2)V9(3) USAGE COMP-3.
+           05  NUM-OF-STARS         PIC 99.
+           05  STAR OCCURS 1 TO 10 TIMES DEPENDING ON NUM-OF-STARS.
+      *            Ordering is: A-Z/##/###, or SPACE
+               10  ORDERING             PIC X(3) VALUE SPACES.
+      *            Mass-index, refers to EVOLUTION.
+               10  MASS-INDEX           INDEX.
+      *            Star stage is one of: D, V, IV, III.
+      * TODO:  There are of course others, but we're not generating
+      *        those (yet).
+               10  STAR-STAGE           PIC X(4).
+               10  STAR-MASS            PIC 9V9(2) USAGE COMP-3.        ×Sol
+               10  STAR-TEMP            PIC 9(6)V9 USAGE COMP-3.        K
+               10  STAR-LUMINOSITY      PIC 9(5)V9(4) USAGE COMP-3.     ×Sol
 
        LINKAGE SECTION.
       *********
@@ -69,6 +110,9 @@
            05  LK-PARM-LEN            PIC 9(4).
            05  LK-PARM-VAL            PIC X(100).
        
+      ******************************************************************
+      * Application MAIN sits here!
+      ******************************************************************
        PROCEDURE DIVISION USING PARM.
       *********
       * Parse PARM.
@@ -91,6 +135,16 @@
                END-IF
            END-PERFORM.
 
+      *    Read and parse evolution specs.csv, line by line.
+           OPEN INPUT CSV-FILE.
+           PERFORM VARYING EVO-INDEX FROM 1 BY 1 UNTIL EVO-INDEX > 34
+               READ CSV-FILE INTO CSV-LINE
+                   NOT AT END
+                       PERFORM PARSE-CSV
+               END-READ
+           END-PERFORM.
+           CLOSE CSV-FILE.
+
       *    Generate star system global specs.
            PERFORM DETERMINE-NUM-STARS.
            PERFORM DETERMINE-STELLAR-AGE.
@@ -99,11 +153,64 @@
            MOVE 1 TO STAR-INDEX.
            PERFORM DETERMINE-MASS-INDEX.
            PERFORM DETERMINE-MASS.
+           PERFORM DETERMINE-STAR-STAGE.
 
            EXIT PROGRAM.
 
       *********
-      * Determine number of stars.
+      * Parse evolution CSV.
+      *********
+       PARSE-CSV.
+           UNSTRING CSV-LINE DELIMITED BY ","
+                    INTO WS-CSV-MASS
+                         WS-CSV-APPROX-TYPE
+                         WS-CSV-AVG-TEMP
+                         WS-CSV-L-MIN
+                         WS-CSV-L-MAX
+                         WS-CSV-M-SPAN
+                         WS-CSV-S-SPAN
+                         WS-CSV-G-SPAN
+      *    Validate CSV entries...
+           COMPUTE EVO-MASS(EVO-INDEX) =
+               FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-MASS))
+           MOVE FUNCTION TRIM(WS-CSV-APPROX-TYPE)
+               TO EVO-APPROX-TYPE(EVO-INDEX)
+           COMPUTE EVO-AVG-TEMP(EVO-INDEX) =
+               FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-AVG-TEMP))
+           COMPUTE EVO-L-MIN(EVO-INDEX) =
+               FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-L-MIN))
+           IF FUNCTION TRIM(WS-CSV-L-MAX) = "-" THEN
+               MOVE 0.0 TO EVO-L-MAX(EVO-INDEX)
+           ELSE
+               COMPUTE EVO-L-MAX(EVO-INDEX) =
+                   FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-L-MAX))
+           END-IF
+      *    M-Span is special in that INF-LIFESPAN represents near
+      *    infinite lifespan (as far as the universe is concerned).
+           IF FUNCTION TRIM(WS-CSV-M-SPAN) = "-" THEN
+               MOVE INF-LIFESPAN TO EVO-M-SPAN(EVO-INDEX)
+           ELSE
+               COMPUTE EVO-M-SPAN(EVO-INDEX) =
+                   FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-M-SPAN))
+           END-IF
+           IF FUNCTION TRIM(WS-CSV-S-SPAN) = "-" THEN
+               MOVE 0.0 TO EVO-S-SPAN(EVO-INDEX)
+           ELSE
+               COMPUTE EVO-S-SPAN(EVO-INDEX) =
+                   FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-S-SPAN))
+           END-IF
+           IF FUNCTION TRIM(WS-CSV-G-SPAN) = "-" THEN
+               MOVE 0.0 TO EVO-G-SPAN(EVO-INDEX)
+           ELSE
+               COMPUTE EVO-G-SPAN(EVO-INDEX) =
+                   FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-G-SPAN))
+           END-IF
+      D    DISPLAY CSV-LINE ' -- unstrung successfully.'
+           EXIT.
+
+      *********
+      * Determine number of stars in the star system. There might be
+      * more, but that is determined elsewhere/later.
       *********
        DETERMINE-NUM-STARS.
            CALL '3D6' USING DICEROLL.
@@ -115,11 +222,13 @@
                WHEN OTHER
                    MOVE 3 TO NUM-OF-STARS
            END-EVALUATE
-           DISPLAY 'NUM-OF-STARS: ' NUM-OF-STARS.
-           GOBACK.
+      D    DISPLAY 'NUM-OF-STARS: ' NUM-OF-STARS.
+           EXIT.
 
       *********
-      * Determine mass index.
+      * Determine mass index randomly. Set CREATING-COMPANION to 'Y'
+      * if/when generating a (surprise/extra) companion star outside
+      * predetermined count of stars.
       *********
        DETERMINE-MASS-INDEX.
            CALL '3D6' USING DICEROLL.
@@ -169,10 +278,10 @@
                MOVE TMP-INT TO MASS-INDEX(STAR-INDEX)
                MOVE 'N' TO CREATING-COMPANION
            END-IF
-           GOBACK.
+           EXIT.
 
       *********
-      * Determine mass index; X choices.
+      * Determine mass index; X choices each variant.
       *********
        DETERMINE-MASS-INDEX-2.
            CALL '3D6' USING DICEROLL.
@@ -181,8 +290,7 @@
            ELSE
                MOVE 1 TO MASS-INDEX(STAR-INDEX)
            END-IF.
-           GOBACK.
-
+           EXIT.
        DETERMINE-MASS-INDEX-3.
            CALL '3D6' USING DICEROLL.
            EVALUATE TRUE
@@ -196,8 +304,7 @@
                    COMPUTE MASS-INDEX(STAR-INDEX)
                        = 2 + MASS-INDEX-OFFSET
            END-EVALUATE.
-           GOBACK.
-
+           EXIT.
        DETERMINE-MASS-INDEX-4.
            CALL '3D6' USING DICEROLL.
            EVALUATE TRUE
@@ -214,8 +321,7 @@
                    COMPUTE MASS-INDEX(STAR-INDEX)
                         = 3 + MASS-INDEX-OFFSET
            END-EVALUATE.
-           GOBACK.
-
+           EXIT.
        DETERMINE-MASS-INDEX-5.
            CALL '3D6' USING DICEROLL.
            EVALUATE TRUE
@@ -235,83 +341,16 @@
                    COMPUTE MASS-INDEX(STAR-INDEX)
                        = 4 + MASS-INDEX-OFFSET
            END-EVALUATE.
-           GOBACK.
+           EXIT.
       
       *********
-      * Determine star mass (in solar masses) based on its mass-index.
+      * Determine star mass based on its mass-index.
       *********
        DETERMINE-MASS.
-           EVALUATE TRUE
-               WHEN MASS-INDEX(STAR-INDEX) = 0
-                   MOVE 2.0 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 1
-                   MOVE 1.9 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 2
-                   MOVE 1.8 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 3
-                   MOVE 1.7 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 4
-                   MOVE 1.6 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 5
-                   MOVE 1.5 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 6
-                   MOVE 1.45 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 7
-                   MOVE 1.4 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 8
-                   MOVE 1.35 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 9
-                   MOVE 1.3 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 10
-                   MOVE 1.25 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 11
-                   MOVE 1.2 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 12
-                   MOVE 1.15 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 13
-                   MOVE 1.1 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 14
-                   MOVE 1.05 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 15
-                   MOVE 1.0 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 16
-                   MOVE 0.95 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 17
-                   MOVE 0.9 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 18
-                   MOVE 0.85 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 19
-                   MOVE 0.8 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 20
-                   MOVE 0.75 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 21
-                   MOVE 0.7 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 22
-                   MOVE 0.65 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 23
-                   MOVE 0.6 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 24
-                   MOVE 0.55 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 25
-                   MOVE 0.5 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 26
-                   MOVE 0.45 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 27
-                   MOVE 0.4 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 28
-                   MOVE 0.35 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 29
-                   MOVE 0.3 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 30
-                   MOVE 0.25 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 31
-                   MOVE 0.2 TO STAR-MASS(STAR-INDEX)
-               WHEN MASS-INDEX(STAR-INDEX) = 32
-                   MOVE 0.15 TO STAR-MASS(STAR-INDEX)
-               WHEN OTHER
-                   MOVE 0.1 TO STAR-MASS(STAR-INDEX)
-           END-EVALUATE.
-           GOBACK.
+           MOVE EVO-MASS(MASS-INDEX(STAR-INDEX))
+                TO STAR-MASS(STAR-INDEX)
+      D    DISPLAY 'Mass: ' STAR-MASS(STAR-INDEX) ' Sol.'
+           EXIT.
 
       *********
       * Determine star ordering in the system based on star-index(es).
@@ -352,7 +391,7 @@
                WHEN STAR-INDEX = 26 MOVE 'Z' TO ORDERING(STAR-INDEX)
       D        WHEN OTHER MOVE '<U>' TO ORDERING(STAR-INDEX)
            END-EVALUATE.
-           GOBACK.
+           EXIT.
 
       *********
       * Determine stellar age and population of the star system.
@@ -368,13 +407,15 @@
                IF DICEROLL IS LESS OR EQUAL TO 6
                    MOVE 'Y1' TO STELLAR-POPULATION
                    COMPUTE STELLAR-AGE
-                           = DICEROLL * 0.3
-                           + TMP-INT * 0.05
+                           = (DICEROLL - 1) * 0.3
+                           + (TMP-INT - 1) * 0.05
                            + 0.1
                ELSE
                    COMPUTE STELLAR-AGE
-                           = DICEROLL * 0.6
-                           + TMP-INT * 0.1
+                           = (DICEROLL - 1) * 0.6
+                           + (TMP-INT - 1) * 0.1
+      D            DISPLAY 'D: ' DICEROLL
+      D            DISPLAY 'T: ' TMP-INT
                    EVALUATE TRUE
                        WHEN DICEROLL IS LESS OR EQUAL TO 10
                            MOVE 'I1' TO STELLAR-POPULATION
@@ -391,83 +432,59 @@
                    END-EVALUATE
                END-IF
            END-IF.
-           GOBACK.
+      D    DISPLAY 'STELLAR-POP: ' STELLAR-POPULATION
+      D    DISPLAY 'STELLAR-AGE: ' STELLAR-AGE
+           EXIT.
 
       *********
       * Determine star's temperature in kelvins based on mass-index.
       *********
        DETERMINE-TEMPERATURE.
+           MOVE EVO-AVG-TEMP(MASS-INDEX(STAR-INDEX))
+                TO STAR-TEMP(STAR-INDEX)
+           EXIT.
+
+      *********
+      * Determine star's stage based on its mass-index and stellar age.
+      *********
+       DETERMINE-STAR-STAGE.
+           IF EVO-M-SPAN(MASS-INDEX(STAR-INDEX))
+               >= STELLAR-AGE
+               MOVE 'V' TO STAR-STAGE(STAR-INDEX)
+           ELSE
+               IF EVO-S-SPAN(MASS-INDEX(STAR-INDEX)) = 0.0
+                   MOVE 'D' TO STAR-STAGE(STAR-INDEX)
+               ELSE IF EVO-M-SPAN(MASS-INDEX(STAR-INDEX)) +
+                       EVO-S-SPAN(MASS-INDEX(STAR-INDEX))
+                       >= STELLAR-AGE
+                       MOVE 'IV' TO STAR-STAGE(STAR-INDEX)
+                    ELSE IF EVO-M-SPAN(MASS-INDEX(STAR-INDEX)) +
+                            EVO-S-SPAN(MASS-INDEX(STAR-INDEX)) +
+                            EVO-G-SPAN(MASS-INDEX(STAR-INDEX))
+                            >= STELLAR-AGE
+                             MOVE 'III' TO STAR-STAGE(STAR-INDEX)
+                         ELSE
+                             MOVE 'D' TO STAR-STAGE(STAR-INDEX)
+                         END-IF
+                    END-IF
+               END-IF
+           END-IF
+           EXIT.
+
+      *********
+      * Determine a star's luminosity based on its stage and other
+      * in factoring things.
+      *********
+       DETERMINE-LUMINOSITY.
            EVALUATE TRUE
-               WHEN MASS-INDEX(STAR-INDEX) = 33
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 32
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 31
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 30
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 29
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 28
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 27
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 26
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 25
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 24
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 23
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 22
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 21
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 20
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 19
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 18
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 17
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 16
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 15
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 14
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 13
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 12
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 11
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 10
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 9
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 8
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 7
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 6
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 5
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 4
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 3
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 2
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 1
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN MASS-INDEX(STAR-INDEX) = 0
-                   MOVE 3100.0 TO STAR-TEMP
-               WHEN OTHER
-      D            DISPLAY 'ERR: temperature not implemented for '
-      D                    'negative mass-index.'
-           END-EVALUATE.
-           GOBACK.
+               WHEN STAR-STAGE(STAR-INDEX) = 'V'
+                   IF EVO-L-MAX(MASS-INDEX(STAR-INDEX)) = NOT-AVAILABLE
+                       CALL 'VALUE-VARIANCE-BY'
+                           USING 10,
+                                 EVO-L-MIN(MASS-INDEX(STAR-INDEX)),
+                                 TMP-NUM
+                       COMPUTE STAR-LUMINOSITY(STAR-INDEX)
+                           = FUNCTION NUMVAL(TMP-NUM)
+                   END-IF
+           END-EVALUATE
+           EXIT.

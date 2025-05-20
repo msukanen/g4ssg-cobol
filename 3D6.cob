@@ -21,5 +21,6 @@
            CALL '1D6' USING RND1.
            CALL '1D6' USING RND2.
            CALL '1D6' USING RND3.
+           INITIALIZE LK-RET-RND.
            COMPUTE LK-RET-RND = RND1 + RND2 + RND3.
            GOBACK.
