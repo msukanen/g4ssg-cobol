@@ -1,11 +1,10 @@
 cmake_minimum_required(VERSION 3.10)
 project(G4SSG)
 
-set(COBOL_SOURCE
-    WRAPPER.cob
+set(COBOL_SOURCE WRAPPER.cob
     MAIN.cob
-    DICER*.cob DICEN*.cob ?D6.cob
-    ALTERVAL.cob
+    DICER*.cob DICEN*.cob ?D6.cob ALTERVA?.cob
+    ORBITSEP.cob
 )
 
 set(COBOL_COMPILER cobc)

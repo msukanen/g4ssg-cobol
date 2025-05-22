@@ -17,100 +17,109 @@
        FILE SECTION.
        FD  CSV-FILE.
        01  CSV-RECORD.
-           05  CSV-LINE            PIC X(50).
+           05  CSV-LINE                PIC X(50).
 
        WORKING-STORAGE SECTION.
       *********
       * Random number generation:
       *********
-      *01  RND-SEED-VALUE          PIC 9(4) COMP-5 VALUE 0.
-       01  DICEROLL                PIC 9(5).
-       01  TMP-INT                 PIC 9(5).
-       01  TMP-NUM                 PIC 9(5)V9(5).
-       01  WS-NUM-DICE             PIC S9(1) COMP-5.
-       01  TEN-PERCENT           PIC 9(5)V9(5) USAGE COMP-3 VALUE 10.0.
-       01  FIVE-PERCENT          PIC 9(5)V9(5) USAGE COMP-3 VALUE  5.0.
+      *01  RND-SEED-VALUE              PIC 9(4) COMP-5 VALUE 0.
+       01  DICEROLL                    PIC 9(5).
+       01  TMP-INT                     PIC 9(5).
+       01  TMP-NUM1                    PIC 9(5)V9(5) USAGE COMP-3.
+       01  TMP-NUM2                    PIC 9(5)V9(5) USAGE COMP-3.
+       01  WS-NUM-DICE                 PIC S9(1) COMP-5.
+       01  TEN-PERCENT                 PIC 9(5)V9(5) USAGE COMP-3
+                                           VALUE 10.0.
+       01  FIVE-PERCENT                PIC 9(5)V9(5) USAGE COMP-3
+                                           VALUE  5.0.
       *********
       * Parsed run params:
       *********
        01  PARSED-PARM.
-           05  PARM-LEN            PIC 9(3).
-           05  PARSED-FIELD        PIC X(20).
-           05  REMAINING-STRING    PIC X(100).
-           05  PARM-INDEX          PIC 9(3) VALUE 1.
-      *    05  CURRENT-PARM-NUM    PIC 9(4) VALUE 0.
+           05  PARM-LEN                PIC 9(3).
+           05  PARSED-FIELD            PIC X(20).
+           05  REMAINING-STRING        PIC X(100).
+           05  PARM-INDEX              PIC 9(3) VALUE 1.
+      *    05  CURRENT-PARM-NUM        PIC 9(4) VALUE 0.
       *********
       * Misc. variables.
       *********
-       77  MAX-EVO                 PIC 99 VALUE 34.                     CONSTANT
-       77  INF-LIFESPAN            PIC 9(5)V9 VALUE 99999.9.            CONSTANT
-       77  NOT-AVAILABLE           PIC 9V9 VALUE 0.0.                   CONSTANT
+       77  MAX-EVO                     PIC 99 VALUE 34.                 CONSTANT
+       77  INF-LIFESPAN                PIC 9(5)V9 VALUE 99999.9.        CONSTANT
+       77  NOT-AVAILABLE               PIC 9V9 VALUE 0.0.               CONSTANT
+       01  A                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
+       01  L                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
+       01  M                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
+       01  S                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
+       01  T                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
       *********
       * Star system data goes here:
       *********
       *    Evolution info is read from a CSV file.
        01  WS-EVO-CSV.
-           02  WS-CSV-MASS        PIC X(10).
-           02  WS-CSV-APPROX-TYPE PIC X(10).
-           02  WS-CSV-AVG-TEMP    PIC X(10).
-           02  WS-CSV-L-MIN       PIC X(10).
-           02  WS-CSV-L-MAX       PIC X(10).
-           02  WS-CSV-M-SPAN      PIC X(10).
-           02  WS-CSV-S-SPAN      PIC X(10).
-           02  WS-CSV-G-SPAN      PIC X(10).
+           02  WS-CSV-MASS             PIC X(10).
+           02  WS-CSV-APPROX-TYPE      PIC X(10).
+           02  WS-CSV-AVG-TEMP         PIC X(10).
+           02  WS-CSV-L-MIN            PIC X(10).
+           02  WS-CSV-L-MAX            PIC X(10).
+           02  WS-CSV-M-SPAN           PIC X(10).
+           02  WS-CSV-S-SPAN           PIC X(10).
+           02  WS-CSV-G-SPAN           PIC X(10).
        01  EVOLUTION OCCURS 34 TIMES                                    ^MAX-EVO
                INDEXED BY EVO-INDEX.
-           02  EVO-MASS         PIC 9(5)V9(5) USAGE COMP-3.
-           02  EVO-APPROX-TYPE  PIC X9.
-           02  EVO-AVG-TEMP     PIC 9(5)V9(5) USAGE COMP-3.
-           02  EVO-L-MIN        PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-MASS                PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-APPROX-TYPE         PIC X9.
+           02  EVO-AVG-TEMP            PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-L-MIN               PIC 9(5)V9(5) USAGE COMP-3.
       *        L-Max of ZERO/- means there's no M/S/G spans and that
       *        the star's luminosity is determined by L-Min alone.
-           02  EVO-L-MAX        PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-L-MAX               PIC 9(5)V9(5) USAGE COMP-3.
       *        M-span of ZERO/- means that the star will remain main-
       *        sequence literally "forever". Lacking S/G-spans means
       *        that the star silently dwindles into D-class, which also
       *        happens if the star's age exceeds M+S+G-span total.
-           02  EVO-M-SPAN       PIC 9(5)V9(5) USAGE COMP-3.
-           02  EVO-S-SPAN       PIC 9(5)V9(5) USAGE COMP-3.
-           02  EVO-G-SPAN       PIC 9(5)V9(5) USAGE COMP-3.
-       01  MASS-INDEX-OFFSET    PIC 99.
-       01  STAR-INDEX           PIC 99.
-       01  L-MIN                PIC 9(5)V9(5) USAGE COMP-3.
-       01  L-MAX                PIC 9(5)V9(5) USAGE COMP-3.
-       01  M-SPAN               PIC 9(5)V9(5) USAGE COMP-3.
-       01  S-SPAN               PIC 9(5)V9(5) USAGE COMP-3.
-       01  G-SPAN               PIC 9(5)V9(5) USAGE COMP-3.
-       01  CREATING-COMPANION   PIC X VALUE 'N'.
+           02  EVO-M-SPAN              PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-S-SPAN              PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-G-SPAN              PIC 9(5)V9(5) USAGE COMP-3.
+       01  MASS-INDEX-OFFSET           PIC 99.
+       01  STAR-INDEX                  PIC 99.
+       01  CREATING-COMPANION          PIC X VALUE 'N'.
        01  STAR-SYSTEM.
-           05  IN-CLUSTER-OR-CORE   PIC X VALUE 'N'.
-           05  STAR-SYSTEM-NAME     PIC X(48).
+           05  IN-CLUSTER-OR-CORE      PIC X VALUE 'N'.
+           05  STAR-SYSTEM-NAME        PIC X(48).
       *        Stellar populations, in order of general age:
       *            E1, Y1, I1, O1, I2, and E2.
-           05  STELLAR-POPULATION   PIC XX.
+           05  STELLAR-POPULATION      PIC XX.
       *        Stellar age is in BYR (billions of years).
-           05  STELLAR-AGE          PIC 9(5)V9(5) USAGE COMP-3.
-           05  NUM-OF-STARS         PIC 99.
+           05  STELLAR-AGE             PIC 9(5)V9(5) USAGE COMP-3.
+           05  NUM-OF-STARS            PIC 99.
            05  STAR OCCURS 1 TO 10 TIMES DEPENDING ON NUM-OF-STARS.
       *            Ordering is: A-Z/##/###, or SPACE
-               10  ORDERING             PIC X(3) VALUE SPACES.
+               10  ORDERING            PIC X(3) VALUE SPACES.
       *            Mass-index, refers to EVOLUTION.
-               10  MASS-INDEX           INDEX.
+               10  MASS-INDEX          INDEX.
       *            Star stage is one of: D, V, IV, III.
-      * TODO:  There are of course others stages/sizes, but we're not
-      *        generating those (yet).
-               10  STAR-STAGE           PIC X(4).
-               10  STAR-MASS            PIC 9(5)V9(5) USAGE COMP-3.     ×Sol
-               10  STAR-TEMP            PIC 9(5)V9(5) USAGE COMP-3.     K
-               10  STAR-LUMINOSITY      PIC 9(5)V9(5) USAGE COMP-3.     ×Sol
+      * TODO:      There are of course others stages/sizes, but we're
+      *            not generating those (yet).
+               10  STAR-STAGE          PIC X(4).
+               10  STAR-MASS           PIC 9(5)V9(5) USAGE COMP-3.      ×Sol
+               10  STAR-TEMP           PIC 9(5)V9(5) USAGE COMP-3.      K
+               10  STAR-LUMINOSITY     PIC 9(5)V9(5) USAGE COMP-3.      ×Sol
+               10  STAR-RADIUS         PIC 9(5)V9(5) USAGE COMP-3.      AU
+               10  AVG-ORBITAL-RADIUS  PIC 9(5)V9(2) USAGE COMP-3.      AU
+               10  STAR-ORBIT-ECCENTR  PIC 9V9(2) USAGE COMP-3.
+                   15  SEPARATION-MIN  PIC 9(5)V9(2) USAGE COMP-3.      AU
+                   15  SEPARATION-MAX  PIC 9(5)V9(2) USAGE COMP-3.      AU
+               10  STAR-DIST-PARENT    PIC 9(5)V9(2) USAGE COMP-3.      AU
 
        LINKAGE SECTION.
       *********
       * "Command-line" params and such go here.
       *********
        01  PARM.
-           05  LK-PARM-LEN            PIC 9(4).
-           05  LK-PARM-VAL            PIC X(100).
+           05  LK-PARM-LEN             PIC 9(4).
+           05  LK-PARM-VAL             PIC X(100).
        
       ******************************************************************
       * Application MAIN sits here!
@@ -156,9 +165,10 @@
            MOVE 1 TO STAR-INDEX.
            PERFORM DETERMINE-ORDERING.
            PERFORM DETERMINE-MASS-INDEX.
-           PERFORM DETERMINE-MASS.
            PERFORM DETERMINE-STAR-STAGE.
+           PERFORM DETERMINE-MASS.
            PERFORM DETERMINE-LUMINOSITY.
+           PERFORM DETERMINE-STAR-ORBITAL-DETAILS.
 
            EXIT PROGRAM.
 
@@ -353,10 +363,18 @@
       * Determine star mass based on its mass-index.
       *********
        DETERMINE-MASS.
-           MOVE EVO-MASS(MASS-INDEX(STAR-INDEX))
-                TO STAR-MASS(STAR-INDEX)
-      D    DISPLAY 'STAR-MASS(' STAR-INDEX '): '
-                   STAR-MASS(STAR-INDEX)' Sol.'
+           IF STAR-STAGE(STAR-INDEX) = 'D' THEN
+               CALL '2D6' USING TMP-INT
+               MOVE 0.05 TO TMP-NUM1
+               MOVE 0.9 TO TMP-NUM2
+               COMPUTE STAR-MASS(STAR-INDEX) =
+                   TMP-INT * TMP-NUM1 + TMP-NUM2
+           ELSE
+               MOVE EVO-MASS(MASS-INDEX(STAR-INDEX))
+                    TO STAR-MASS(STAR-INDEX)
+      D        DISPLAY 'STAR-MASS(' STAR-INDEX '): '
+                       STAR-MASS(STAR-INDEX)' Sol.'
+           END-IF
            EXIT.
 
       *********
@@ -445,8 +463,35 @@
       * Determine star's temperature in kelvins based on mass-index.
       *********
        DETERMINE-TEMPERATURE.
-           MOVE EVO-AVG-TEMP(MASS-INDEX(STAR-INDEX))
-                TO STAR-TEMP(STAR-INDEX)
+           IF STAR-STAGE(STAR-INDEX) = 'D' THEN
+      * TODO:  figure out proper White Dwarf surface temperature instead
+      *        of using this placeholder value of 10000.0.
+               MOVE 10000.0 TO STAR-TEMP(STAR-INDEX)
+           ELSE
+               MOVE EVO-AVG-TEMP(MASS-INDEX(STAR-INDEX))
+                    TO STAR-TEMP(STAR-INDEX)
+               EVALUATE TRUE
+                   WHEN STAR-STAGE(STAR-INDEX) = 'IV'
+      *                T = M - (( A / S ) * ( M - 4800 ))
+                       MOVE STAR-TEMP(STAR-INDEX) TO M
+                       MOVE STELLAR-AGE TO A
+                       COMPUTE A =
+                           A - EVO-M-SPAN(MASS-INDEX(STAR-INDEX))
+                       MOVE EVO-S-SPAN(MASS-INDEX(STAR-INDEX)) TO S
+                       COMPUTE STAR-TEMP(STAR-INDEX) =
+                           M - ((A / S) * (M - 4800.0))
+                   WHEN STAR-STAGE(STAR-INDEX) = 'III' OR
+                        STAR-STAGE(STAR-INDEX) = 'II'  OR
+                        STAR-STAGE(STAR-INDEX) = 'Ib'  OR
+                        STAR-STAGE(STAR-INDEX) = 'Ia'
+                       COMPUTE STAR-TEMP(STAR-INDEX) =
+                           3000.0 + (2000.0 * FUNCTION RANDOM)
+               END-EVALUATE
+      *        +/- 100K
+               MOVE 100.0 TO TMP-NUM1
+               CALL 'ALTER-VALUE-BY-UPTO' USING
+                   TMP-NUM1, STAR-TEMP(STAR-INDEX)
+           END-IF
            EXIT.
 
       *********
@@ -486,12 +531,85 @@
            EVALUATE TRUE
                WHEN STAR-STAGE(STAR-INDEX) = 'V'
                    IF EVO-L-MAX(MASS-INDEX(STAR-INDEX)) = NOT-AVAILABLE
-                       CALL 'ALTER-VALUE-BY-PERCENTAGE'
-                           USING TEN-PERCENT,
-                                 EVO-L-MIN(MASS-INDEX(STAR-INDEX)),
-                                 STAR-LUMINOSITY(STAR-INDEX)
+                       MOVE EVO-L-MIN(MASS-INDEX(STAR-INDEX))
+                           TO STAR-LUMINOSITY(STAR-INDEX)
+                   ELSE
+      *                L = MIN + (( A / S ) × ( MAX - MIN ))
+                       COMPUTE STAR-LUMINOSITY(STAR-INDEX)
+                           = EVO-L-MIN(MASS-INDEX(STAR-INDEX)) +
+                           ((STELLAR-AGE /
+                             EVO-M-SPAN(MASS-INDEX(STAR-INDEX))) *
+                            (EVO-L-MAX(MASS-INDEX(STAR-INDEX)) -
+                             EVO-L-MIN(MASS-INDEX(STAR-INDEX))))
                    END-IF
+               WHEN STAR-STAGE(STAR-INDEX) = 'IV'
+                   MOVE EVO-L-MAX(MASS-INDEX(STAR-INDEX))
+                       TO STAR-LUMINOSITY(STAR-INDEX)
+               WHEN STAR-STAGE(STAR-INDEX) = 'D'
+                   MOVE 0.001 TO STAR-LUMINOSITY(STAR-INDEX)
+               WHEN OTHER
+      *            Generally III - Ia here ...
+                   MOVE 25.0 TO TMP-NUM1
+                   COMPUTE STAR-LUMINOSITY(STAR-INDEX) =
+                       EVO-L-MAX(MASS-INDEX(STAR-INDEX)) * TMP-NUM1
            END-EVALUATE
+           CALL 'ALTER-VALUE-BY-PERCENTAGE'
+               USING TEN-PERCENT,
+                     STAR-LUMINOSITY(STAR-INDEX)
       D    DISPLAY 'STAR-LUMINOSITY(' STAR-INDEX '): '
                    STAR-LUMINOSITY(STAR-INDEX)
+           EXIT.
+
+      *********
+      * Determine star's radius (in AU).
+      *********
+       DETERMINE-STAR-RADIUS.
+           IF STAR-STAGE(STAR-INDEX) = 'D' THEN
+               MOVE 0.0 TO STAR-RADIUS(STAR-INDEX)
+           ELSE
+      *        R = (155,000 × √L) / T²
+               MOVE STAR-TEMP(STAR-INDEX) TO T
+               COMPUTE L = FUNCTION SQRT(STAR-LUMINOSITY) * 155000.0
+               COMPUTE STAR-RADIUS(STAR-INDEX) = L / (T * T)
+           END-IF
+           EXIT.
+
+      *********
+      * Determine orbital eccentricity.
+      *********
+       DETERMINE-STAR-ORBITAL-DETAILS.
+           IF NUM-OF-STARS < 2 OR STAR-INDEX = 1 THEN
+               MOVE 0.0 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               MOVE 0.0 TO SEPARATION-MIN(STAR-INDEX)
+               MOVE 0.0 TO SEPARATION-MAX(STAR-INDEX)
+               EXIT
+           END-IF
+           CALL '3D6' USING TMP-INT
+           EVALUATE TRUE
+               WHEN TMP-INT <= 3
+                   MOVE 0.0 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT = 4
+                   MOVE 0.1 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT = 5
+                   MOVE 0.2 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT = 6
+                   MOVE 0.3 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT <= 8
+                   MOVE 0.4 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT <= 11
+                   MOVE 0.5 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT <= 13
+                   MOVE 0.6 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT <= 15
+                   MOVE 0.7 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT = 16
+                   MOVE 0.8 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN TMP-INT = 17
+                   MOVE 0.9 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+               WHEN OTHER
+                   MOVE 0.95 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
+           END-EVALUATE
+
+           
+
            EXIT.
