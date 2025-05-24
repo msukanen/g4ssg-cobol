@@ -17,4 +17,4 @@
            MOVE 100.0 TO VAR-VALUE
            CALL 'ALTER-VALUE-BY-PERCENTAGE' USING
                VAR-PERCENTAGE, VAR-VALUE, RET-VAL.
-           GOBACK.
+           STOP RUN.

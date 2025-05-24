@@ -4,7 +4,7 @@
 
        DATA DIVISION.
        LINKAGE SECTION.
-       01  LK-RET-RND      PIC 9(5).
+       01  LK-RET-RND                  PIC 99 USAGE COMP-3.
 
       ******************************************************************
       * Roll LK-NUM-DICE count of d6'es, sum the result and return.
@@ -14,6 +14,5 @@
       *
       ******************************************************************
        PROCEDURE DIVISION USING LK-RET-RND.
-           INITIALIZE LK-RET-RND
-           COMPUTE LK-RET-RND = LK-RET-RND + (FUNCTION RANDOM * 6) + 1
+           COMPUTE LK-RET-RND = (FUNCTION RANDOM * 6) + 1
            GOBACK.

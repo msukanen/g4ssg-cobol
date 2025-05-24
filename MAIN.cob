@@ -24,11 +24,15 @@
       * Random number generation:
       *********
       *01  RND-SEED-VALUE              PIC 9(4) COMP-5 VALUE 0.
-       01  DICEROLL                    PIC 9(5).
-       01  TMP-INT                     PIC 9(5).
+       01  DICEROLL                    PIC 99 USAGE COMP-3.
+       01  D6                          PIC 9(3) USAGE COMP-3.
+       01  DR1                         PIC 9(5) VALUE 99.
+       01  DR2                         PIC 9(5) VALUE 99.
+       01  DR3                         PIC 9(5) VALUE 99.
+       01  DR4                         PIC 9(5) VALUE 99.
+       01  WS-IDX                      INDEX.
        01  TMP-NUM1                    PIC 9(5)V9(5) USAGE COMP-3.
        01  TMP-NUM2                    PIC 9(5)V9(5) USAGE COMP-3.
-       01  WS-NUM-DICE                 PIC S9(1) COMP-5.
        01  TEN-PERCENT                 PIC 9(5)V9(5) USAGE COMP-3
                                            VALUE 10.0.
        01  FIVE-PERCENT                PIC 9(5)V9(5) USAGE COMP-3
@@ -43,16 +47,22 @@
            05  PARM-INDEX              PIC 9(3) VALUE 1.
       *    05  CURRENT-PARM-NUM        PIC 9(4) VALUE 0.
       *********
-      * Misc. variables.
+      * Misc. variables/constants.
       *********
        77  MAX-EVO                     PIC 99 VALUE 34.                 CONSTANT
+      *    200 as maximum number of stars is probably overkill, but who
+      *    knows... there might be such systems in existence afterall
+      *    somewhere in the universe.
+       77  MAX-STARS                   PIC 999 VALUE 200.               CONSTANT
        77  INF-LIFESPAN                PIC 9(5)V9 VALUE 99999.9.        CONSTANT
        77  NOT-AVAILABLE               PIC 9V9 VALUE 0.0.               CONSTANT
+      * A, L, M, S, T are used in a number of places for COMPUTE clarity.
        01  A                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
        01  L                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
        01  M                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
        01  S                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
        01  T                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
+       01  WS-NUMSTR                   PIC ZZZZZZZZZZZ.                 Z-STRING
       *********
       * Star system data goes here:
       *********
@@ -66,6 +76,7 @@
            02  WS-CSV-M-SPAN           PIC X(10).
            02  WS-CSV-S-SPAN           PIC X(10).
            02  WS-CSV-G-SPAN           PIC X(10).
+      *    Parsed Evolution Info
        01  EVOLUTION OCCURS 34 TIMES                                    ^MAX-EVO
                INDEXED BY EVO-INDEX.
            02  EVO-MASS                PIC 9(5)V9(5) USAGE COMP-3.
@@ -82,9 +93,12 @@
            02  EVO-M-SPAN              PIC 9(5)V9(5) USAGE COMP-3.
            02  EVO-S-SPAN              PIC 9(5)V9(5) USAGE COMP-3.
            02  EVO-G-SPAN              PIC 9(5)V9(5) USAGE COMP-3.
-       01  MASS-INDEX-OFFSET           PIC 99.
-       01  STAR-INDEX                  PIC 99.
+       01  MASS-IDX-OFF                PIC 99.
        01  CREATING-COMPANION          PIC X VALUE 'N'.
+      *********
+      * All the info pertaining to a star system that is/was being
+      * generated:
+      *********
        01  STAR-SYSTEM.
            05  IN-CLUSTER-OR-CORE      PIC X VALUE 'N'.
            05  STAR-SYSTEM-NAME        PIC X(48).
@@ -94,7 +108,10 @@
       *        Stellar age is in BYR (billions of years).
            05  STELLAR-AGE             PIC 9(5)V9(5) USAGE COMP-3.
            05  NUM-OF-STARS            PIC 99.
-           05  STAR OCCURS 1 TO 10 TIMES DEPENDING ON NUM-OF-STARS.
+      *        Individual star(s) of the system live here.
+           05  STAR OCCURS 1 TO 200 TIMES
+                    DEPENDING ON NUM-OF-STARS
+                    INDEXED BY STAR-INDEX.
       *            Ordering is: A-Z/##/###, or SPACE
                10  ORDERING            PIC X(3) VALUE SPACES.
       *            Mass-index, refers to EVOLUTION.
@@ -102,16 +119,18 @@
       *            Star stage is one of: D, V, IV, III.
       * TODO:      There are of course others stages/sizes, but we're
       *            not generating those (yet).
-               10  STAR-STAGE          PIC X(4).
-               10  STAR-MASS           PIC 9(5)V9(5) USAGE COMP-3.      ×Sol
-               10  STAR-TEMP           PIC 9(5)V9(5) USAGE COMP-3.      K
-               10  STAR-LUMINOSITY     PIC 9(5)V9(5) USAGE COMP-3.      ×Sol
-               10  STAR-RADIUS         PIC 9(5)V9(5) USAGE COMP-3.      AU
-               10  AVG-ORBITAL-RADIUS  PIC 9(5)V9(2) USAGE COMP-3.      AU
-               10  STAR-ORBIT-ECCENTR  PIC 9V9(2) USAGE COMP-3.
-                   15  SEPARATION-MIN  PIC 9(5)V9(2) USAGE COMP-3.      AU
-                   15  SEPARATION-MAX  PIC 9(5)V9(2) USAGE COMP-3.      AU
-               10  STAR-DIST-PARENT    PIC 9(5)V9(2) USAGE COMP-3.      AU
+               10  STAGE               PIC X(4).
+               10  MASS                PIC 9(5)V9(5) USAGE COMP-3.      ×Sol
+               10  TEMPERATURE         PIC 9(5)V9(2) USAGE COMP-3.      K
+               10  LUMINOSITY          PIC 9(5)V9(5) USAGE COMP-3.      ×Sol
+               10  RADIUS              PIC 9(5)V9(5) USAGE COMP-3.      AU
+               10  ORBIT.
+                   15  ECCENTRICITY    PIC 9V9(2) USAGE COMP-3.
+                   15  DISTANCE.
+                       20  MINR        PIC 9(5)V9(2) USAGE COMP-3.      AU
+                       20  AVGR        PIC 9(5)V9(2) USAGE COMP-3.      AU
+                       20  MAXR        PIC 9(5)V9(2) USAGE COMP-3.      AU
+               10  INNER-LIMIT         PIC 9(5)V9(5) USAGE COMP-3.
 
        LINKAGE SECTION.
       *********
@@ -121,11 +140,10 @@
            05  LK-PARM-LEN             PIC 9(4).
            05  LK-PARM-VAL             PIC X(100).
        
-      ******************************************************************
-      * Application MAIN sits here!
-      ******************************************************************
        PROCEDURE DIVISION USING PARM.
-      *********
+      ******************************************************************
+      * BEGIN MAIN PROGRAM.
+      ******************************************************************
       * Parse PARM.
       *********
       *    DISPLAY 'LK-PARM-LEN: ' LK-PARM-LEN.
@@ -148,6 +166,7 @@
 
       *    Read and parse evolution specs.csv, line by line.
            OPEN INPUT CSV-FILE.
+      D    DISPLAY '<CSV>'
            PERFORM VARYING EVO-INDEX
                FROM 1 BY 1 UNTIL EVO-INDEX > MAX-EVO
                READ CSV-FILE INTO CSV-LINE
@@ -155,6 +174,8 @@
                        PERFORM PARSE-CSV
                END-READ
            END-PERFORM.
+      D    DISPLAY '</CSV>'
+      D    DISPLAY SPACE
            CLOSE CSV-FILE.
 
       *    Generate star system global specs.
@@ -162,15 +183,23 @@
            PERFORM DETERMINE-STELLAR-AGE.
       
       *    Generate star-specific data.
-           MOVE 1 TO STAR-INDEX.
-           PERFORM DETERMINE-ORDERING.
-           PERFORM DETERMINE-MASS-INDEX.
-           PERFORM DETERMINE-STAR-STAGE.
-           PERFORM DETERMINE-MASS.
-           PERFORM DETERMINE-LUMINOSITY.
-           PERFORM DETERMINE-STAR-ORBITAL-DETAILS.
+           PERFORM VARYING STAR-INDEX FROM 1 BY 1
+                   UNTIL STAR-INDEX > NUM-OF-STARS
+      D        DISPLAY SPACE
+      D        DISPLAY 'Generating STAR-INDEX('STAR-INDEX')'
+               PERFORM DETERMINE-ORDERING
+               PERFORM DETERMINE-MASS-INDEX
+               PERFORM DETERMINE-STAR-STAGE
+               PERFORM DETERMINE-MASS
+               PERFORM DETERMINE-LUMINOSITY
+               PERFORM DETERMINE-STAR-RADIUS
+               PERFORM DETERMINE-STAR-ORBIT-DETAILS
+           END-PERFORM.
 
            EXIT PROGRAM.
+      ******************************************************************
+      * END MAIN PROGRAM.
+      ******************************************************************
 
       *********
       * Parse evolution CSV.
@@ -246,32 +275,31 @@
       * predetermined count of stars.
       *********
        DETERMINE-MASS-INDEX.
-           CALL '3D6' USING DICEROLL.
+           CALL '3D6' USING DICEROLL
            EVALUATE TRUE
                WHEN DICEROLL = 3
-      *            MOVE 1 TO MASS-INDEX-OFFSET
-                   PERFORM DETERMINE-MASS-INDEX-2
+                   MOVE 2 TO A
                WHEN DICEROLL = 4
-                   MOVE 3 TO MASS-INDEX-OFFSET
-                   PERFORM DETERMINE-MASS-INDEX-3
+                   MOVE 3 TO MASS-IDX-OFF
+                   MOVE 3 TO A
                WHEN DICEROLL = 5
-                   MOVE 6 TO MASS-INDEX-OFFSET
-                   PERFORM DETERMINE-MASS-INDEX-4
+                   MOVE 6 TO MASS-IDX-OFF
+                   MOVE 4 TO A
                WHEN DICEROLL = 6
-                   MOVE 10 TO MASS-INDEX-OFFSET
-                   PERFORM DETERMINE-MASS-INDEX-5
+                   MOVE 10 TO MASS-IDX-OFF
+                   MOVE 5 TO A
                WHEN DICEROLL = 7
-                   MOVE 15 TO MASS-INDEX-OFFSET
-                   PERFORM DETERMINE-MASS-INDEX-5
+                   MOVE 15 TO MASS-IDX-OFF
+                   MOVE 5 TO A
                WHEN DICEROLL = 8
-                   MOVE 20 TO MASS-INDEX-OFFSET
-                   PERFORM DETERMINE-MASS-INDEX-5
+                   MOVE 20 TO MASS-IDX-OFF
+                   MOVE 5 TO A
                WHEN DICEROLL = 9
-                   MOVE 25 TO MASS-INDEX-OFFSET
-                   PERFORM DETERMINE-MASS-INDEX-3
+                   MOVE 25 TO MASS-IDX-OFF
+                   MOVE 3 TO A
                WHEN DICEROLL = 10
-                   MOVE 28 TO MASS-INDEX-OFFSET
-                   PERFORM DETERMINE-MASS-INDEX-3
+                   MOVE 28 TO MASS-IDX-OFF
+                   MOVE 3 TO A
                WHEN DICEROLL = 11
                    MOVE 31 TO MASS-INDEX(STAR-INDEX)
                WHEN DICEROLL = 12
@@ -282,15 +310,21 @@
                    MOVE 34 TO MASS-INDEX(STAR-INDEX)
            END-EVALUATE
 
-      *    If creating a companion star, we step mass-index deeper by
-      *    1d6-1 steps (capping to MAX-EVO).
+           IF DICEROLL IS LESS THAN 11 THEN
+      *        We do further randomizing only if the EVALUATE above
+      *        didn't give us a singular/solid MASS-INDEX right away.
+               PERFORM DETERMINE-MASS-INDEX-X
+           END-IF
+
            IF CREATING-COMPANION = 'Y' THEN
+      *        If creating a companion star, we step mass-index deeper
+      *        by 1d6-1 steps (capping to MAX-EVO, of course).
                CALL '1D6' USING DICEROLL
-               COMPUTE TMP-INT = MASS-INDEX(STAR-INDEX) + DICEROLL - 1
-               IF TMP-INT > MAX-EVO THEN
-                   MOVE MAX-EVO TO TMP-INT
+               COMPUTE D6 = MASS-INDEX(STAR-INDEX) + DICEROLL - 1
+               IF D6 > MAX-EVO THEN
+                   MOVE MAX-EVO TO D6
                END-IF
-               MOVE TMP-INT TO MASS-INDEX(STAR-INDEX)
+               MOVE D6 TO MASS-INDEX(STAR-INDEX)
                MOVE 'N' TO CREATING-COMPANION
            END-IF
       D    DISPLAY 'MASS-INDEX(' STAR-INDEX '): ' MASS-INDEX(STAR-INDEX)
@@ -298,83 +332,72 @@
 
       *********
       * Determine mass index; X choices each variant.
+      *
+      * Upon call:
+      *    A            = number of choices.
+      *    MASS-IDX-OFF = initial MASS-INDEX offset.
       *********
-       DETERMINE-MASS-INDEX-2.
+       DETERMINE-MASS-INDEX-X.
            CALL '3D6' USING DICEROLL.
-           IF DICEROLL IS LESS OR EQUAL TO 10
-               MOVE 1 TO MASS-INDEX(STAR-INDEX)
+           IF A = 2 THEN
+               IF DICEROLL IS LESS OR EQUAL TO 10
+                   MOVE 1 TO MASS-INDEX(STAR-INDEX)
+               ELSE
+                   MOVE 2 TO MASS-INDEX(STAR-INDEX)
+               END-IF
            ELSE
-               MOVE 2 TO MASS-INDEX(STAR-INDEX)
-           END-IF.
+               INITIALIZE DR3
+               INITIALIZE DR4
+               EVALUATE TRUE
+                   WHEN A = 3
+                       MOVE 8 TO DR1
+                       MOVE 11 TO DR2
+                   WHEN A = 4
+                       MOVE 7 TO DR1
+                       MOVE 10 TO DR2
+                       MOVE 12 TO DR3
+                   WHEN OTHER
+                       MOVE 7 TO DR1
+                       MOVE 9 TO DR2
+                       MOVE 10 TO DR3
+                       MOVE 12 TO DR4
+               END-EVALUATE
+              
+               MOVE MASS-IDX-OFF TO WS-IDX
+               EVALUATE TRUE
+                   WHEN DICEROLL IS LESS OR EQUAL TO DR1
+      *                COMPUTE WS-IDX = WS-IDX + 0                      NOP
+                   WHEN DICEROLL IS LESS OR EQUAL TO DR2
+                       COMPUTE WS-IDX = WS-IDX + 1
+                   WHEN DICEROLL IS LESS OR EQUAL TO DR3
+                       COMPUTE WS-IDX = WS-IDX + 2
+                   WHEN DICEROLL IS LESS OR EQUAL TO DR4
+                       COMPUTE WS-IDX = WS-IDX + 3
+                   WHEN OTHER
+                       COMPUTE WS-IDX = WS-IDX + 4
+               END-EVALUATE
+               MOVE WS-IDX TO MASS-INDEX(STAR-INDEX)
+           END-IF
            EXIT.
-       DETERMINE-MASS-INDEX-3.
-           CALL '3D6' USING DICEROLL.
-           EVALUATE TRUE
-               WHEN DICEROLL IS LESS OR EQUAL TO 8
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 0 + MASS-INDEX-OFFSET
-               WHEN DICEROLL IS LESS OR EQUAL TO 11
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 1 + MASS-INDEX-OFFSET
-               WHEN OTHER
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 2 + MASS-INDEX-OFFSET
-           END-EVALUATE.
-           EXIT.
-       DETERMINE-MASS-INDEX-4.
-           CALL '3D6' USING DICEROLL.
-           EVALUATE TRUE
-               WHEN DICEROLL IS LESS OR EQUAL TO 7
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 0 + MASS-INDEX-OFFSET
-               WHEN DICEROLL IS LESS OR EQUAL TO 10
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 1 + MASS-INDEX-OFFSET
-               WHEN DICEROLL IS LESS OR EQUAL TO 12
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 2 + MASS-INDEX-OFFSET
-               WHEN OTHER
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 3 + MASS-INDEX-OFFSET
-           END-EVALUATE.
-           EXIT.
-       DETERMINE-MASS-INDEX-5.
-           CALL '3D6' USING DICEROLL.
-           EVALUATE TRUE
-               WHEN DICEROLL IS LESS OR EQUAL TO 7
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 0 + MASS-INDEX-OFFSET
-               WHEN DICEROLL IS LESS OR EQUAL TO 9
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 1 + MASS-INDEX-OFFSET
-               WHEN DICEROLL = 10
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 2 + MASS-INDEX-OFFSET
-               WHEN DICEROLL IS LESS OR EQUAL TO 12
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 3 + MASS-INDEX-OFFSET
-               WHEN OTHER
-                   COMPUTE MASS-INDEX(STAR-INDEX)
-                       = 4 + MASS-INDEX-OFFSET
-           END-EVALUATE.
-           EXIT.
-      
+
       *********
       * Determine star mass based on its mass-index.
       *********
        DETERMINE-MASS.
-           IF STAR-STAGE(STAR-INDEX) = 'D' THEN
-               CALL '2D6' USING TMP-INT
+           IF STAGE(STAR-INDEX) = 'D' THEN
+               CALL '2D6' USING D6
                MOVE 0.05 TO TMP-NUM1
                MOVE 0.9 TO TMP-NUM2
-               COMPUTE STAR-MASS(STAR-INDEX) =
-                   TMP-INT * TMP-NUM1 + TMP-NUM2
+               COMPUTE MASS(STAR-INDEX) =
+                       D6 * TMP-NUM1 + TMP-NUM2
            ELSE
                MOVE EVO-MASS(MASS-INDEX(STAR-INDEX))
-                    TO STAR-MASS(STAR-INDEX)
-      D        DISPLAY 'STAR-MASS(' STAR-INDEX '): '
-                       STAR-MASS(STAR-INDEX)' Sol.'
+                    TO MASS(STAR-INDEX)
            END-IF
+      D    MOVE STAR-INDEX TO WS-NUMSTR
+      D    DISPLAY 'MASS(' FUNCTION TRIM(WS-NUMSTR) '): ' NO ADVANCING
+      D    MOVE MASS(STAR-INDEX) TO WS-NUMSTR
+      D    DISPLAY FUNCTION TRIM(WS-NUMSTR)' Sol.'
            EXIT.
 
       *********
@@ -428,17 +451,18 @@
                MOVE 0.0 TO STELLAR-AGE
            ELSE
                CALL '1D6' USING DICEROLL
-               CALL '1D6' USING TMP-INT
+               CALL '1D6' USING D6
                IF DICEROLL IS LESS OR EQUAL TO 6
                    MOVE 'Y1' TO STELLAR-POPULATION
                    COMPUTE STELLAR-AGE
                            = (DICEROLL - 1) * 0.3
-                           + (TMP-INT - 1) * 0.05
+                           + (D6 - 1) * 0.05
                            + 0.1
                ELSE
                    COMPUTE STELLAR-AGE
                            = (DICEROLL - 1) * 0.6
-                           + (TMP-INT - 1) * 0.1
+                           + (D6 - 1) * 0.1
+                   DISPLAY 'DICEROLL: 'DICEROLL
                    EVALUATE TRUE
                        WHEN DICEROLL IS LESS OR EQUAL TO 10
                            MOVE 'I1' TO STELLAR-POPULATION
@@ -454,7 +478,7 @@
                            COMPUTE STELLAR-AGE = STELLAR-AGE + 10.0
                    END-EVALUATE
                END-IF
-           END-IF.
+           END-IF
       D    DISPLAY 'STELLAR-POP: ' STELLAR-POPULATION
       D    DISPLAY 'STELLAR-AGE: ' STELLAR-AGE
            EXIT.
@@ -463,34 +487,34 @@
       * Determine star's temperature in kelvins based on mass-index.
       *********
        DETERMINE-TEMPERATURE.
-           IF STAR-STAGE(STAR-INDEX) = 'D' THEN
+           IF STAGE(STAR-INDEX) = 'D' THEN
       * TODO:  figure out proper White Dwarf surface temperature instead
       *        of using this placeholder value of 10000.0.
-               MOVE 10000.0 TO STAR-TEMP(STAR-INDEX)
+               MOVE 10000.0 TO TEMPERATURE(STAR-INDEX)
            ELSE
                MOVE EVO-AVG-TEMP(MASS-INDEX(STAR-INDEX))
-                    TO STAR-TEMP(STAR-INDEX)
+                    TO TEMPERATURE(STAR-INDEX)
                EVALUATE TRUE
-                   WHEN STAR-STAGE(STAR-INDEX) = 'IV'
+                   WHEN STAGE(STAR-INDEX) = 'IV'
       *                T = M - (( A / S ) * ( M - 4800 ))
-                       MOVE STAR-TEMP(STAR-INDEX) TO M
+                       MOVE TEMPERATURE(STAR-INDEX) TO M
                        MOVE STELLAR-AGE TO A
                        COMPUTE A =
                            A - EVO-M-SPAN(MASS-INDEX(STAR-INDEX))
                        MOVE EVO-S-SPAN(MASS-INDEX(STAR-INDEX)) TO S
-                       COMPUTE STAR-TEMP(STAR-INDEX) =
+                       COMPUTE TEMPERATURE(STAR-INDEX) =
                            M - ((A / S) * (M - 4800.0))
-                   WHEN STAR-STAGE(STAR-INDEX) = 'III' OR
-                        STAR-STAGE(STAR-INDEX) = 'II'  OR
-                        STAR-STAGE(STAR-INDEX) = 'Ib'  OR
-                        STAR-STAGE(STAR-INDEX) = 'Ia'
-                       COMPUTE STAR-TEMP(STAR-INDEX) =
+                   WHEN STAGE(STAR-INDEX) = 'III' OR
+                        STAGE(STAR-INDEX) = 'II'  OR
+                        STAGE(STAR-INDEX) = 'Ib'  OR
+                        STAGE(STAR-INDEX) = 'Ia'
+                       COMPUTE TEMPERATURE(STAR-INDEX) =
                            3000.0 + (2000.0 * FUNCTION RANDOM)
                END-EVALUATE
       *        +/- 100K
                MOVE 100.0 TO TMP-NUM1
                CALL 'ALTER-VALUE-BY-UPTO' USING
-                   TMP-NUM1, STAR-TEMP(STAR-INDEX)
+                   TMP-NUM1, TEMPERATURE(STAR-INDEX)
            END-IF
            EXIT.
 
@@ -498,29 +522,28 @@
       * Determine star's stage based on its mass-index and stellar age.
       *********
        DETERMINE-STAR-STAGE.
-           IF EVO-M-SPAN(MASS-INDEX(STAR-INDEX))
-               >= STELLAR-AGE
-               MOVE 'V' TO STAR-STAGE(STAR-INDEX)
+           IF EVO-M-SPAN(MASS-INDEX(STAR-INDEX)) >= STELLAR-AGE
+               MOVE 'V' TO STAGE(STAR-INDEX)
            ELSE
                IF EVO-S-SPAN(MASS-INDEX(STAR-INDEX)) = 0.0
-                   MOVE 'D' TO STAR-STAGE(STAR-INDEX)
+                   MOVE 'D' TO STAGE(STAR-INDEX)
                ELSE IF EVO-M-SPAN(MASS-INDEX(STAR-INDEX)) +
                        EVO-S-SPAN(MASS-INDEX(STAR-INDEX))
                        >= STELLAR-AGE
-                       MOVE 'IV' TO STAR-STAGE(STAR-INDEX)
+                       MOVE 'IV' TO STAGE(STAR-INDEX)
                     ELSE IF EVO-M-SPAN(MASS-INDEX(STAR-INDEX)) +
                             EVO-S-SPAN(MASS-INDEX(STAR-INDEX)) +
                             EVO-G-SPAN(MASS-INDEX(STAR-INDEX))
                             >= STELLAR-AGE
-                             MOVE 'III' TO STAR-STAGE(STAR-INDEX)
+                             MOVE 'III' TO STAGE(STAR-INDEX)
                          ELSE
-                             MOVE 'D' TO STAR-STAGE(STAR-INDEX)
+                             MOVE 'D' TO STAGE(STAR-INDEX)
                          END-IF
                     END-IF
                END-IF
            END-IF
-      D    DISPLAY 'STAR-STAGE(' STAR-INDEX '): '
-                   STAR-STAGE(STAR-INDEX)
+      D    DISPLAY 'STAGE(' STAR-INDEX '): '
+                   STAGE(STAR-INDEX)
            EXIT.
 
       *********
@@ -529,87 +552,66 @@
       *********
        DETERMINE-LUMINOSITY.
            EVALUATE TRUE
-               WHEN STAR-STAGE(STAR-INDEX) = 'V'
+               WHEN STAGE(STAR-INDEX) = 'V'
                    IF EVO-L-MAX(MASS-INDEX(STAR-INDEX)) = NOT-AVAILABLE
                        MOVE EVO-L-MIN(MASS-INDEX(STAR-INDEX))
-                           TO STAR-LUMINOSITY(STAR-INDEX)
+                           TO LUMINOSITY(STAR-INDEX)
                    ELSE
       *                L = MIN + (( A / S ) × ( MAX - MIN ))
-                       COMPUTE STAR-LUMINOSITY(STAR-INDEX)
+                       COMPUTE LUMINOSITY(STAR-INDEX)
                            = EVO-L-MIN(MASS-INDEX(STAR-INDEX)) +
                            ((STELLAR-AGE /
                              EVO-M-SPAN(MASS-INDEX(STAR-INDEX))) *
                             (EVO-L-MAX(MASS-INDEX(STAR-INDEX)) -
                              EVO-L-MIN(MASS-INDEX(STAR-INDEX))))
                    END-IF
-               WHEN STAR-STAGE(STAR-INDEX) = 'IV'
+               WHEN STAGE(STAR-INDEX) = 'IV'
                    MOVE EVO-L-MAX(MASS-INDEX(STAR-INDEX))
-                       TO STAR-LUMINOSITY(STAR-INDEX)
-               WHEN STAR-STAGE(STAR-INDEX) = 'D'
-                   MOVE 0.001 TO STAR-LUMINOSITY(STAR-INDEX)
+                       TO LUMINOSITY(STAR-INDEX)
+               WHEN STAGE(STAR-INDEX) = 'D'
+                   MOVE 0.001 TO LUMINOSITY(STAR-INDEX)
                WHEN OTHER
       *            Generally III - Ia here ...
                    MOVE 25.0 TO TMP-NUM1
-                   COMPUTE STAR-LUMINOSITY(STAR-INDEX) =
+                   COMPUTE LUMINOSITY(STAR-INDEX) =
                        EVO-L-MAX(MASS-INDEX(STAR-INDEX)) * TMP-NUM1
            END-EVALUATE
            CALL 'ALTER-VALUE-BY-PERCENTAGE'
                USING TEN-PERCENT,
-                     STAR-LUMINOSITY(STAR-INDEX)
-      D    DISPLAY 'STAR-LUMINOSITY(' STAR-INDEX '): '
-                   STAR-LUMINOSITY(STAR-INDEX)
+                     LUMINOSITY(STAR-INDEX)
+      D    DISPLAY 'LUMINOSITY(' STAR-INDEX '): '
+                   LUMINOSITY(STAR-INDEX)
            EXIT.
 
       *********
       * Determine star's radius (in AU).
       *********
        DETERMINE-STAR-RADIUS.
-           IF STAR-STAGE(STAR-INDEX) = 'D' THEN
-               MOVE 0.0 TO STAR-RADIUS(STAR-INDEX)
+           IF STAGE(STAR-INDEX) = 'D' THEN
+               MOVE 0.0 TO RADIUS(STAR-INDEX)
            ELSE
       *        R = (155,000 × √L) / T²
-               MOVE STAR-TEMP(STAR-INDEX) TO T
-               COMPUTE L = FUNCTION SQRT(STAR-LUMINOSITY) * 155000.0
-               COMPUTE STAR-RADIUS(STAR-INDEX) = L / (T * T)
+               MOVE TEMPERATURE(STAR-INDEX) TO T
+               COMPUTE L = FUNCTION SQRT(LUMINOSITY(STAR-INDEX))
+                                    * 155000.0
+               COMPUTE RADIUS(STAR-INDEX) = L / (T * T)
            END-IF
+      D    DISPLAY 'RADIUS('STAR-INDEX'): 'RADIUS(STAR-INDEX)
            EXIT.
 
       *********
-      * Determine orbital eccentricity.
+      * Determine orbital eccentricity alongside min-avg-max orbit
+      * distances in relation to parent (if exists).
+      *
+      * NOTE: STAR-INDEX(1) obviously has no parent ;-)
       *********
-       DETERMINE-STAR-ORBITAL-DETAILS.
-           IF NUM-OF-STARS < 2 OR STAR-INDEX = 1 THEN
-               MOVE 0.0 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               MOVE 0.0 TO SEPARATION-MIN(STAR-INDEX)
-               MOVE 0.0 TO SEPARATION-MAX(STAR-INDEX)
-               EXIT
-           END-IF
-           CALL '3D6' USING TMP-INT
-           EVALUATE TRUE
-               WHEN TMP-INT <= 3
-                   MOVE 0.0 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT = 4
-                   MOVE 0.1 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT = 5
-                   MOVE 0.2 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT = 6
-                   MOVE 0.3 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT <= 8
-                   MOVE 0.4 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT <= 11
-                   MOVE 0.5 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT <= 13
-                   MOVE 0.6 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT <= 15
-                   MOVE 0.7 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT = 16
-                   MOVE 0.8 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN TMP-INT = 17
-                   MOVE 0.9 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-               WHEN OTHER
-                   MOVE 0.95 TO STAR-ORBIT-ECCENTR(STAR-INDEX)
-           END-EVALUATE
-
-           
-
+       DETERMINE-STAR-ORBIT-DETAILS.
+           CALL 'STAR-ORBITAL-DETAILS' USING
+               NUM-OF-STARS,
+               STAR-INDEX,
+               ORBIT(STAR-INDEX).
+      D    IF STAR-INDEX > 1 THEN
+      D        DISPLAY 'ORBIT ECCENTRICITY('STAR-INDEX'): '
+                       ECCENTRICITY(STAR-INDEX)
+      D    END-IF
            EXIT.

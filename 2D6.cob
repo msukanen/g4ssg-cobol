@@ -4,10 +4,9 @@
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01  RND1        PIC 9(5).
-       01  RND2        PIC 9(5).
+       01  RND1                        PIC 99 USAGE COMP-3.
        LINKAGE SECTION.
-       01  LK-RET-RND     PIC 9(5).
+       01  LK-RET-RND                  PIC 99 USAGE COMP-3.
 
       ******************************************************************
       * Roll LK-NUM-DICE count of d6'es, sum the result and return.
@@ -18,7 +17,6 @@
       ******************************************************************
        PROCEDURE DIVISION USING LK-RET-RND.
            CALL '1D6' USING RND1.
-           CALL '1D6' USING RND2.
-           INITIALIZE LK-RET-RND.
-           COMPUTE LK-RET-RND = RND1 + RND2.
+           CALL '1D6' USING LK-RET-RND.
+           COMPUTE LK-RET-RND = LK-RET-RND + RND1.
            GOBACK.
