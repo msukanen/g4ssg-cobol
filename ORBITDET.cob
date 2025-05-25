@@ -24,7 +24,7 @@
                    IDX,
                    STAR-ORBIT.
            IF NUM-OF-STARS < 2 OR IDX = 1 THEN
-      D        DISPLAY 'NOTE: STAR-ORBITAL-DETAILS unnecessary for: '
+      D        DISPLAY '<note> STAR-ORBITAL-DETAILS unnecessary for '
                        'single star and/or star-index 1.'
                MOVE 'NA' TO SEPARATION
                MOVE 0.0 TO ECCENTRICITY

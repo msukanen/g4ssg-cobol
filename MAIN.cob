@@ -142,14 +142,14 @@
        
        PROCEDURE DIVISION USING PARM.
       ******************************************************************
-      * BEGIN MAIN PROGRAM.
+      **                               * Obviously, this is the very
+      **   RUN MAIN PROGRAM.           * entry point of the whole app.
+      **                               * Onwards! ;-)
       ******************************************************************
       * Parse PARM.
       *********
-      *    DISPLAY 'LK-PARM-LEN: ' LK-PARM-LEN.
-      *    DISPLAY 'LK-PARM-VAL: ' LK-PARM-VAL.
-           COMPUTE PARM-LEN = FUNCTION LENGTH(
-                                FUNCTION TRIM(LK-PARM-VAL)).
+           COMPUTE PARM-LEN =
+                   FUNCTION LENGTH(FUNCTION TRIM(LK-PARM-VAL)).
            PERFORM UNTIL PARM-INDEX > PARM-LEN
                INITIALIZE PARSED-FIELD
                UNSTRING LK-PARM-VAL
@@ -160,13 +160,13 @@
 
                IF PARSED-FIELD(1:1) = 'C' THEN
                    MOVE 'Y' TO IN-CLUSTER-OR-CORE
-                   DISPLAY 'Generating system in a cluster/core.'
+                   DISPLAY 'Generating star system in a cluster/core.'
                END-IF
            END-PERFORM.
 
       *    Read and parse evolution specs.csv, line by line.
            OPEN INPUT CSV-FILE.
-      D    DISPLAY '<CSV>'
+      *D    DISPLAY '<CSV>'
            PERFORM VARYING EVO-INDEX
                FROM 1 BY 1 UNTIL EVO-INDEX > MAX-EVO
                READ CSV-FILE INTO CSV-LINE
@@ -174,8 +174,8 @@
                        PERFORM PARSE-CSV
                END-READ
            END-PERFORM.
-      D    DISPLAY '</CSV>'
-      D    DISPLAY SPACE
+      *D    DISPLAY '</CSV>'
+      *D    DISPLAY SPACE
            CLOSE CSV-FILE.
 
       *    Generate star system global specs.
@@ -249,7 +249,7 @@
                COMPUTE EVO-G-SPAN(EVO-INDEX) =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-G-SPAN))
            END-IF
-      D    DISPLAY CSV-LINE
+      *D    DISPLAY CSV-LINE
            EXIT.
 
       *********
@@ -395,9 +395,8 @@
                     TO MASS(STAR-INDEX)
            END-IF
       D    MOVE STAR-INDEX TO WS-NUMSTR
-      D    DISPLAY 'MASS(' FUNCTION TRIM(WS-NUMSTR) '): ' NO ADVANCING
-      D    MOVE MASS(STAR-INDEX) TO WS-NUMSTR
-      D    DISPLAY FUNCTION TRIM(WS-NUMSTR)' Sol.'
+      D    DISPLAY 'MASS(' FUNCTION TRIM(WS-NUMSTR) '): '
+                   MASS(STAR-INDEX) ' × Sol.'
            EXIT.
 
       *********
