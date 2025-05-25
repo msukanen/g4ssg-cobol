@@ -24,8 +24,12 @@
                    IDX,
                    STAR-ORBIT.
            IF NUM-OF-STARS < 2 OR IDX = 1 THEN
-      D        DISPLAY '<note> STAR-ORBITAL-DETAILS unnecessary for '
-                       'single star and/or star-index 1.'
+      * Single/index-1 star doesn't have orbital eccentricity nor orbital radius
+      * in scale that would matter outside of science papers.  The small wobble
+      * caused by orbiting planet(s) and/or companion star(s) is too small to
+      * alter the system's dynamics.  This isn't entirely true for close contact
+      * binaries, however, but in their case the planet(s) will orbit the binary
+      * as a whole instead of any single stellar object.
                MOVE 'NA' TO SEPARATION
                MOVE 0.0 TO ECCENTRICITY
                MOVE 0.0 TO AVG-RADIUS
@@ -37,29 +41,34 @@
            CALL '2D6' USING D6
            EVALUATE TRUE
                WHEN D6 <= 6
+      *            VC - Very Close
                    MOVE 'VC' TO SEPARATION
                    MOVE 0.05 TO WS-RADIUS-MUL
                WHEN D6 <= 9
+      *            C - Close
                    MOVE 'C' TO SEPARATION
                    MOVE 0.5 TO WS-RADIUS-MUL
                WHEN D6 <= 11
+      *            M - Medium
                    MOVE 'M' TO SEPARATION
                    MOVE 2.0 TO WS-RADIUS-MUL
                WHEN D6 <= 14
+      *            W - Wide
                    MOVE 'W' TO SEPARATION
                    MOVE 10.0 TO WS-RADIUS-MUL
                WHEN OTHER
+      *            D - Distant
                    MOVE 'D' TO SEPARATION
                    MOVE 50.0 TO WS-RADIUS-MUL
            END-EVALUATE
            
+           CALL '2D6' USING D6
            COMPUTE AVG-RADIUS = WS-RADIUS-MUL * D6
 
            CALL '3D6' USING D6
            IF IDX > 2 THEN
                COMPUTE D6 = D6 + 6
            END-IF
-
            EVALUATE TRUE
                WHEN D6 <= 3
                    MOVE 0.0 TO ECCENTRICITY

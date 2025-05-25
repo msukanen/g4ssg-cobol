@@ -194,11 +194,8 @@
       D        DISPLAY 'Generating STAR-INDEX('STAR-INDEX')'
                PERFORM DETERMINE-ORDERING
                PERFORM DETERMINE-MASS-INDEX
-               PERFORM DETERMINE-STAR-STAGE
-               PERFORM DETERMINE-MASS
-               PERFORM DETERMINE-LUMINOSITY
-               PERFORM DETERMINE-STAR-RADIUS
-               PERFORM DETERMINE-STAR-ORBIT-DETAILS
+               PERFORM DETERMINE-STELLAR-CHARACTERISTICS
+               PERFORM COMPANION-STAR-ORBITS
                PERFORM DETERMINE-ORBIT-LIMITS
            END-PERFORM.
 
@@ -387,9 +384,20 @@
            EXIT.
 
       *********
+      * Determine various stellar characteristics.
+      *********
+       DETERMINE-STELLAR-CHARACTERISTICS.
+           PERFORM SET-STAR-STAGE
+           PERFORM DETERMINE-STELLAR-MASS
+           PERFORM COMPUTE-LUMINOSITY
+           PERFORM DETERMINE-TEMPERATURE
+           PERFORM COMPUTE-STAR-RADIUS
+           EXIT.
+
+      *********
       * Determine star mass based on its mass-index.
       *********
-       DETERMINE-MASS.
+       DETERMINE-STELLAR-MASS.
            IF STAGE(STAR-INDEX) = 'D' THEN
                CALL '2D6' USING D6
                MOVE 0.05 TO TMP-NUM1
@@ -526,7 +534,7 @@
       *********
       * Determine star's stage based on its mass-index and stellar age.
       *********
-       DETERMINE-STAR-STAGE.
+       SET-STAR-STAGE.
            IF EVO-M-SPAN(MASS-INDEX(STAR-INDEX)) >= STELLAR-AGE
                MOVE 'V' TO STAGE(STAR-INDEX)
            ELSE
@@ -555,7 +563,7 @@
       * Determine a star's luminosity based on its stage and other
       * in factoring things.
       *********
-       DETERMINE-LUMINOSITY.
+       COMPUTE-LUMINOSITY.
            EVALUATE TRUE
                WHEN STAGE(STAR-INDEX) = 'V'
                    IF EVO-L-MAX(MASS-INDEX(STAR-INDEX)) = NOT-AVAILABLE
@@ -591,7 +599,7 @@
       *********
       * Determine star's radius (in AU).
       *********
-       DETERMINE-STAR-RADIUS.
+       COMPUTE-STAR-RADIUS.
            IF STAGE(STAR-INDEX) = 'D' THEN
                MOVE 0.0 TO RADIUS(STAR-INDEX)
            ELSE
@@ -610,7 +618,7 @@
       *
       * NOTE: STAR-INDEX(1) obviously has no parent ;-)
       *********
-       DETERMINE-STAR-ORBIT-DETAILS.
+       COMPANION-STAR-ORBITS.
            CALL 'STAR-ORBITAL-DETAILS' USING
                NUM-OF-STARS,
                STAR-INDEX,
