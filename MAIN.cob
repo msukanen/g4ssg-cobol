@@ -635,6 +635,23 @@
       *********
       * Determine inner and outer planetary orbit limits and so called
       * "snow line".
+      *
+      * TODO: Forbidden Zones
+      *
       *********
        DETERMINE-ORBIT-LIMITS.
+      *    Inner limit:
+           COMPUTE TMP-NUM1 = MASS(STAR-INDEX) / 10.0
+           COMPUTE TMP-NUM2 =
+                   FUNCTION SQRT(LUMINOSITY(STAR-INDEX)) / 100.0
+
+           IF TMP-NUM1 > TMP-NUM2 THEN
+               MOVE TMP-NUM1 TO INNER-LIMIT(STAR-INDEX)
+           ELSE
+               MOVE TMP-NUM2 TO INNER-LIMIT(STAR-INDEX)
+           END-IF
+
+           COMPUTE OUTER-LIMIT(STAR-INDEX) = MASS(STAR-INDEX) * 40.0
+           COMPUTE SNOW-LINE(STAR-INDEX) =
+                   FUNCTION SQRT(LUMINOSITY(STAR-INDEX)) * 4.85
            EXIT.
