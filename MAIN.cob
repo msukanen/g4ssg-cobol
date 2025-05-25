@@ -126,11 +126,16 @@
                10  RADIUS              PIC 9(5)V9(5) USAGE COMP-3.      AU
                10  ORBIT.
                    15  ECCENTRICITY    PIC 9V9(2) USAGE COMP-3.
+                   15  SEPARATION      PIC XX.
                    15  DISTANCE.
-                       20  MINR        PIC 9(5)V9(2) USAGE COMP-3.      AU
-                       20  AVGR        PIC 9(5)V9(2) USAGE COMP-3.      AU
-                       20  MAXR        PIC 9(5)V9(2) USAGE COMP-3.      AU
-               10  INNER-LIMIT         PIC 9(5)V9(5) USAGE COMP-3.
+                       20  MINR        PIC 9(5)V9(3) USAGE COMP-3.      AU
+                       20  AVGR        PIC 9(5)V9(3) USAGE COMP-3.      AU
+                       20  MAXR        PIC 9(5)V9(3) USAGE COMP-3.      AU
+               10  ORBITAL-LIMITS.
+                   15  INNER-LIMIT     PIC 9(5)V9(5) USAGE COMP-3.      AU
+                   15  OUTER-LIMIT     PIC 9(5)V9(5) USAGE COMP-3.      AU
+                   15  SNOW-LINE       PIC 9(5)V9(5) USAGE COMP-3.      AU
+
 
        LINKAGE SECTION.
       *********
@@ -194,6 +199,7 @@
                PERFORM DETERMINE-LUMINOSITY
                PERFORM DETERMINE-STAR-RADIUS
                PERFORM DETERMINE-STAR-ORBIT-DETAILS
+               PERFORM DETERMINE-ORBIT-LIMITS
            END-PERFORM.
 
            EXIT PROGRAM.
@@ -612,5 +618,15 @@
       D    IF STAR-INDEX > 1 THEN
       D        DISPLAY 'ORBIT ECCENTRICITY('STAR-INDEX'): '
                        ECCENTRICITY(STAR-INDEX)
+      D        DISPLAY '      MIN: 'MINR(STAR-INDEX)' AU'
+      D        DISPLAY '      AVG: 'AVGR(STAR-INDEX)' AU'
+      D        DISPLAY '      MAX: 'MAXR(STAR-INDEX)' AU'
       D    END-IF
+           EXIT.
+
+      *********
+      * Determine inner and outer planetary orbit limits and so called
+      * "snow line".
+      *********
+       DETERMINE-ORBIT-LIMITS.
            EXIT.

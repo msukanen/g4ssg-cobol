@@ -6,7 +6,7 @@
       **************************************************************************
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01  WS-RADIUS-MUL               PIC 9(2)V9(2) USAGE COMP-3.      AU
+       01  WS-RADIUS-MUL               USAGE COMP-1.                    AU
        01  D6                          PIC 99 USAGE COMP-3.
 
        LINKAGE SECTION.
@@ -15,9 +15,9 @@
        01  STAR-ORBIT.
            05  ECCENTRICITY PIC 9V9(2) USAGE COMP-3.
            05  SEPARATION   PIC XX.
-           05  AVG-RADIUS   PIC 9(5)V9(5) USAGE COMP-3.
-           05  MIN-RADIUS   PIC 9(5)V9(5) USAGE COMP-3.
-           05  MAX-RADIUS   PIC 9(5)V9(5) USAGE COMP-3.
+           05  MIN-RADIUS   PIC 9(5)V9(3) USAGE COMP-3.
+           05  AVG-RADIUS   PIC 9(5)V9(3) USAGE COMP-3.
+           05  MAX-RADIUS   PIC 9(5)V9(3) USAGE COMP-3.
        
        PROCEDURE DIVISION
            USING   NUM-OF-STARS,
@@ -32,7 +32,7 @@
                MOVE 0.0 TO MIN-RADIUS
                MOVE 0.0 TO MAX-RADIUS
                GOBACK
-           END-IF.
+           END-IF
 
            CALL '2D6' USING D6
            EVALUATE TRUE
@@ -51,14 +51,14 @@
                WHEN OTHER
                    MOVE 'D' TO SEPARATION
                    MOVE 50.0 TO WS-RADIUS-MUL
-           END-EVALUATE.
+           END-EVALUATE
            
-           COMPUTE AVG-RADIUS = WS-RADIUS-MUL * D6.
+           COMPUTE AVG-RADIUS = WS-RADIUS-MUL * D6
 
-           CALL '3D6' USING D6.
+           CALL '3D6' USING D6
            IF IDX > 2 THEN
                COMPUTE D6 = D6 + 6
-           END-IF.
+           END-IF
 
            EVALUATE TRUE
                WHEN D6 <= 3
@@ -83,8 +83,8 @@
                    MOVE 0.9 TO ECCENTRICITY
                WHEN OTHER
                    MOVE 0.95 TO ECCENTRICITY
-           END-EVALUATE.
+           END-EVALUATE
 
-           COMPUTE MIN-RADIUS = (1.0 - ECCENTRICITY) * AVG-RADIUS.
-           COMPUTE MAX-RADIUS = (1.0 + ECCENTRICITY) * AVG-RADIUS.
+           COMPUTE MIN-RADIUS = (1.0 - ECCENTRICITY) * AVG-RADIUS
+           COMPUTE MAX-RADIUS = (1.0 + ECCENTRICITY) * AVG-RADIUS
            GOBACK.

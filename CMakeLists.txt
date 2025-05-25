@@ -3,15 +3,15 @@ project(G4SSG)
 
 set(COBOL_SOURCE WRAPPER.cob
     MAIN.cob
-    DICER*.cob DICEN*.cob ?D6.cob ALTERVA?.cob
-    ORBIT*.cob
+    sub/rng/*.cob
+    sub/ORBIT*.cob
 )
 set(TEST1_SOURCE test/VARIATST.cob
-    ALTERVA?.cob
+    sub/rng/ALTERVA?.cob
 )
 set(TEST2_SOURCE test/ORBITST1.cob
-    ORBITDET.cob
-    ?D6.cob
+    sub/ORBITDET.cob
+    sub/rng/?D6.cob
 )
 
 set(COBOL_COMPILER cobc)
