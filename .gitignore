@@ -1,5 +1,3 @@
-!bin
-bin/*
 CMakeFiles
 *.cmake
 CMakeCache.txt
