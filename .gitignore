@@ -1,3 +1,4 @@
+!bin/.gitignore
 CMakeFiles
 *.cmake
 CMakeCache.txt
