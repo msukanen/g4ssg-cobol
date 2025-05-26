@@ -198,12 +198,14 @@
                PERFORM DETERMINE-STELLAR-CHARACTERISTICS
                PERFORM COMPANION-STAR-ORBITS
                PERFORM DETERMINE-ORBIT-LIMITS
+               PERFORM PLACE-PLANETS
            END-PERFORM.
 
-           EXIT PROGRAM.
-      ******************************************************************
-      * END MAIN PROGRAM.
-      ******************************************************************
+      ******************************************************************  T
+      *                                * "Bye bye cruel world for now!"    H
+           EXIT PROGRAM.                                                 E  E
+      *                                * "But see you soon again!"        N
+      ******************************************************************   D
 
       *********
       * Parse evolution CSV.
@@ -652,4 +654,12 @@
                    MASS(STAR-INDEX),
                    LUMINOSITY(STAR-INDEX),
                    ORBITAL-LIMITS(STAR-INDEX)
+           EXIT.
+
+      *********
+      * Place planets!
+      *
+      * Start with gas giants, if any...
+      *********
+       PLACE-PLANETS.
            EXIT.

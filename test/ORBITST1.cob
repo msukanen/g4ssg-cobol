@@ -1,7 +1,11 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID. ORBITAL-DETAILS-TEST.
-       AUTHOR.     Markku Sukanen
-
+       AUTHOR.     Markku Sukanen.
+      ******************************************************************
+      *
+      * Test orbital separation determining.
+      *
+      ******************************************************************
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
        SOURCE-COMPUTER. WSL WITH DEBUGGING MODE.
@@ -23,14 +27,14 @@
       D    DISPLAY 'Running STAR-ORBITAL-DETAILS 'NUM-OF-STARS' times.'
            PERFORM VARYING IDX FROM 1 BY 1
                    UNTIL IDX > NUM-OF-STARS
-               CALL 'STAR-ORBITAL-DETAILS' USING
-                   NUM-OF-STARS, IDX, STAR-ORBIT
-               IF IDX > 1 THEN
+               CALL 'STAR-ORBITAL-DETAILS'
+                   USING NUM-OF-STARS, IDX, STAR-ORBIT
+      D        IF IDX > 1 THEN
       D            DISPLAY 'ECCENTRICITY: 'ECCENTRICITY
       D            DISPLAY 'SEPARATION  : 'SEPARATION
       D            DISPLAY 'MIN-RADIUS  : 'MIN-RADIUS
       D            DISPLAY 'AVG-RADIUS  : 'AVG-RADIUS
       D            DISPLAY 'MAX-RADIUS  : 'MAX-RADIUS
-               END-IF
+      D        END-IF
            END-PERFORM.
            STOP RUN.

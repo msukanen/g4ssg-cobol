@@ -1,8 +1,18 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID. STAR-ORBITAL-DETAILS.
-       AUTHOR.     Markku Sukanen
+       AUTHOR.     Markku Sukanen.
       **************************************************************************
-      * Calculate orbital separation between two stars.
+      *
+      * Calculate orbital separation between two stars and the companion's
+      * orbit eccentricity.
+      *
+      * Note that single/index-1 star doesn't have orbital eccentricity nor
+      * orbital radius in a scale that would matter outside of science papers.
+      * The small wobble caused by orbiting planet(s) and/or companion star(s)
+      * is too small to matter for the system's overall dynamics.  This isn't
+      * entirely true, however, for close contact binaries, but in their case
+      * the planet(s) will orbit the binary as a whole.
+      *
       **************************************************************************
        DATA DIVISION.
        WORKING-STORAGE SECTION.
@@ -24,12 +34,6 @@
                    IDX,
                    STAR-ORBIT.
            IF NUM-OF-STARS < 2 OR IDX = 1 THEN
-      * Single/index-1 star doesn't have orbital eccentricity nor orbital radius
-      * in scale that would matter outside of science papers.  The small wobble
-      * caused by orbiting planet(s) and/or companion star(s) is too small to
-      * alter the system's dynamics.  This isn't entirely true for close contact
-      * binaries, however, but in their case the planet(s) will orbit the binary
-      * as a whole instead of any single stellar object.
                MOVE 'NA' TO SEPARATION
                MOVE 0.0 TO ECCENTRICITY
                MOVE 0.0 TO AVG-RAD

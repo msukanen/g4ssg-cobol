@@ -1,4 +1,9 @@
        IDENTIFICATION DIVISION.
+      ******************************************************************
+      *
+      * Determine a star's orbit limits (inner, outer, snow line).
+      *
+      ******************************************************************
        PROGRAM-ID. STAR-ORBIT-LIMITS.
        AUTHOR.     Markku Sukanen
 
@@ -20,23 +25,18 @@
            05  SNOW-LINE               PIC 9(5)V9(5) USAGE COMP-3.      AU
 
        PROCEDURE DIVISION USING MASS, LUMINOSITY, ORBITAL-LIMITS.
-      D    DISPLAY 'STAR-ORBIT-LIMITS:'
-      *D    DISPLAY '  MASS 'MASS
-      *D    DISPLAY '  LUM  'LUMINOSITY
            COMPUTE NUM1 = MASS / 10.0.
            COMPUTE NUM2 ROUNDED = FUNCTION SQRT(LUMINOSITY) / 100.0
 
            IF NUM1 > NUM2 THEN
+      D        DISPLAY 'SOL MASS+'
                MOVE NUM1 TO WS-INNER
            ELSE
+      D        DISPLAY 'SOL LUM+'
                MOVE NUM2 TO WS-INNER
            END-IF
-      D    DISPLAY '  inner     : 'WS-INNER' AU'
-
            COMPUTE WS-OUTER = MASS * 40.0
-      D    DISPLAY '  outer     : 'WS-OUTER' AU'
            COMPUTE WS-SNOW ROUNDED = FUNCTION SQRT(LUMINOSITY) * 4.85
-      D    DISPLAY '  snow-line : 'WS-SNOW' AU'
            MOVE WS-INNER TO INNER-LIMIT
            MOVE WS-OUTER TO OUTER-LIMIT
            move WS-SNOW TO SNOW-LINE
