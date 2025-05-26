@@ -6,18 +6,18 @@
       **************************************************************************
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01  WS-RADIUS-MUL               USAGE COMP-1.                    AU
+       01  WS-RAD-MUL                  USAGE COMP-1.                    AU
        01  D6                          PIC 99 USAGE COMP-3.
 
        LINKAGE SECTION.
        01  NUM-OF-STARS                PIC 99.
        01  IDX                         INDEX.
        01  STAR-ORBIT.
-           05  ECCENTRICITY PIC 9V9(2) USAGE COMP-3.
-           05  SEPARATION   PIC XX.
-           05  MIN-RADIUS   PIC 9(5)V9(3) USAGE COMP-3.
-           05  AVG-RADIUS   PIC 9(5)V9(3) USAGE COMP-3.
-           05  MAX-RADIUS   PIC 9(5)V9(3) USAGE COMP-3.
+           05  ECCENTRICITY            PIC 9V9(2) USAGE COMP-3.
+           05  SEPARATION              PIC XX.
+           05  MIN-RAD                 PIC 9(5)V9(3) USAGE COMP-3.
+           05  AVG-RAD                 PIC 9(5)V9(3) USAGE COMP-3.
+           05  MAX-RAD                 PIC 9(5)V9(3) USAGE COMP-3.
        
        PROCEDURE DIVISION
            USING   NUM-OF-STARS,
@@ -32,9 +32,9 @@
       * as a whole instead of any single stellar object.
                MOVE 'NA' TO SEPARATION
                MOVE 0.0 TO ECCENTRICITY
-               MOVE 0.0 TO AVG-RADIUS
-               MOVE 0.0 TO MIN-RADIUS
-               MOVE 0.0 TO MAX-RADIUS
+               MOVE 0.0 TO AVG-RAD
+               MOVE 0.0 TO MIN-RAD
+               MOVE 0.0 TO MAX-RAD
                GOBACK
            END-IF
 
@@ -43,27 +43,27 @@
                WHEN D6 <= 6
       *            VC - Very Close
                    MOVE 'VC' TO SEPARATION
-                   MOVE 0.05 TO WS-RADIUS-MUL
+                   MOVE 0.05 TO WS-RAD-MUL
                WHEN D6 <= 9
       *            C - Close
                    MOVE 'C' TO SEPARATION
-                   MOVE 0.5 TO WS-RADIUS-MUL
+                   MOVE 0.5 TO WS-RAD-MUL
                WHEN D6 <= 11
       *            M - Medium
                    MOVE 'M' TO SEPARATION
-                   MOVE 2.0 TO WS-RADIUS-MUL
+                   MOVE 2.0 TO WS-RAD-MUL
                WHEN D6 <= 14
       *            W - Wide
                    MOVE 'W' TO SEPARATION
-                   MOVE 10.0 TO WS-RADIUS-MUL
+                   MOVE 10.0 TO WS-RAD-MUL
                WHEN OTHER
       *            D - Distant
                    MOVE 'D' TO SEPARATION
-                   MOVE 50.0 TO WS-RADIUS-MUL
+                   MOVE 50.0 TO WS-RAD-MUL
            END-EVALUATE
            
            CALL '2D6' USING D6
-           COMPUTE AVG-RADIUS = WS-RADIUS-MUL * D6
+           COMPUTE AVG-RAD ROUNDED = WS-RAD-MUL * D6
 
            CALL '3D6' USING D6
            IF IDX > 2 THEN
@@ -94,6 +94,6 @@
                    MOVE 0.95 TO ECCENTRICITY
            END-EVALUATE
 
-           COMPUTE MIN-RADIUS = (1.0 - ECCENTRICITY) * AVG-RADIUS
-           COMPUTE MAX-RADIUS = (1.0 + ECCENTRICITY) * AVG-RADIUS
+           COMPUTE MIN-RAD ROUNDED = (1.0 - ECCENTRICITY) * AVG-RAD
+           COMPUTE MAX-RAD ROUNDED = (1.0 + ECCENTRICITY) * AVG-RAD
            GOBACK.

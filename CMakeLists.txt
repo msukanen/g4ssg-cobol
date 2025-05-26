@@ -13,13 +13,18 @@ set(TEST2_SOURCE test/ORBITST1.cob
     sub/ORBITDET.cob
     sub/rng/?D6.cob
 )
+set(TEST3_SOURCE test/ORBITST2.cob
+    sub/ORBITLIM.cob
+    sub/rng/?D6.cob
+)
 
 set(COBOL_COMPILER cobc)
 set(COBOL_FLAGS -x)
 set(COBOL_DEBUG )
 set(OUT_EXE bin/g4ssg)
-set(TEST1_EXE bin/vartest)
-set(TEST2_EXE bin/orbtest)
+set(TEST1_EXE bin/testvar)
+set(TEST2_EXE bin/testorbd)
+set(TEST3_EXE bin/testorbl)
 
 add_custom_command(
     OUTPUT ${OUT_EXE}
@@ -55,4 +60,16 @@ add_custom_command(
 add_custom_target(
     build_cobol_test2 ALL
     DEPENDS ${TEST2_EXE}
+)
+
+add_custom_command(
+    OUTPUT ${TEST3_EXE}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST3_EXE} ${TEST3_SOURCE}
+    DEPENDS ${TEST3_SOURCE}
+    COMMENT "Compiling test 3 ..."
+)
+
+add_custom_target(
+    build_cobol_test3 ALL
+    DEPENDS ${TEST3_EXE}
 )

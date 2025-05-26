@@ -33,6 +33,7 @@
        01  WS-IDX                      INDEX.
        01  TMP-NUM1                    PIC 9(5)V9(5) USAGE COMP-3.
        01  TMP-NUM2                    PIC 9(5)V9(5) USAGE COMP-3.
+      D01  TMP-NUMD                    PIC 9(5)V9(5) VALUE 0.0.
        01  TEN-PERCENT                 PIC 9(5)V9(5) USAGE COMP-3
                                            VALUE 10.0.
        01  FIVE-PERCENT                PIC 9(5)V9(5) USAGE COMP-3
@@ -81,7 +82,7 @@
                INDEXED BY EVO-INDEX.
            02  EVO-MASS                PIC 9(5)V9(5) USAGE COMP-3.
            02  EVO-APPROX-TYPE         PIC X9.
-           02  EVO-AVG-TEMP            PIC 9(5)V9(5) USAGE COMP-3.
+           02  EVO-AVG-TEMP            PIC 9(5)V9(2) USAGE COMP-3.
            02  EVO-L-MIN               PIC 9(5)V9(5) USAGE COMP-3.
       *        L-Max of ZERO/- means there's no M/S/G spans and that
       *        the star's luminosity is determined by L-Min alone.
@@ -218,18 +219,18 @@
                          WS-CSV-S-SPAN
                          WS-CSV-G-SPAN
       *    Validate CSV entries...
-           COMPUTE EVO-MASS(EVO-INDEX) =
+           COMPUTE EVO-MASS(EVO-INDEX) ROUNDED =
                FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-MASS))
            MOVE FUNCTION TRIM(WS-CSV-APPROX-TYPE)
                TO EVO-APPROX-TYPE(EVO-INDEX)
-           COMPUTE EVO-AVG-TEMP(EVO-INDEX) =
+           COMPUTE EVO-AVG-TEMP(EVO-INDEX) ROUNDED =
                FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-AVG-TEMP))
-           COMPUTE EVO-L-MIN(EVO-INDEX) =
+           COMPUTE EVO-L-MIN(EVO-INDEX) ROUNDED =
                FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-L-MIN))
            IF FUNCTION TRIM(WS-CSV-L-MAX) = "-" THEN
                MOVE 0.0 TO EVO-L-MAX(EVO-INDEX)
            ELSE
-               COMPUTE EVO-L-MAX(EVO-INDEX) =
+               COMPUTE EVO-L-MAX(EVO-INDEX) ROUNDED =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-L-MAX))
            END-IF
       *    M-Span is special in that INF-LIFESPAN represents near
@@ -237,19 +238,19 @@
            IF FUNCTION TRIM(WS-CSV-M-SPAN) = "-" THEN
                MOVE INF-LIFESPAN TO EVO-M-SPAN(EVO-INDEX)
            ELSE
-               COMPUTE EVO-M-SPAN(EVO-INDEX) =
+               COMPUTE EVO-M-SPAN(EVO-INDEX) ROUNDED =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-M-SPAN))
            END-IF
            IF FUNCTION TRIM(WS-CSV-S-SPAN) = "-" THEN
                MOVE 0.0 TO EVO-S-SPAN(EVO-INDEX)
            ELSE
-               COMPUTE EVO-S-SPAN(EVO-INDEX) =
+               COMPUTE EVO-S-SPAN(EVO-INDEX) ROUNDED =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-S-SPAN))
            END-IF
            IF FUNCTION TRIM(WS-CSV-G-SPAN) = "-" THEN
                MOVE 0.0 TO EVO-G-SPAN(EVO-INDEX)
            ELSE
-               COMPUTE EVO-G-SPAN(EVO-INDEX) =
+               COMPUTE EVO-G-SPAN(EVO-INDEX) ROUNDED =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-G-SPAN))
            END-IF
       *D    DISPLAY CSV-LINE
@@ -330,7 +331,7 @@
                MOVE D6 TO MASS-INDEX(STAR-INDEX)
                MOVE 'N' TO CREATING-COMPANION
            END-IF
-      D    DISPLAY 'MASS-INDEX(' STAR-INDEX '): ' MASS-INDEX(STAR-INDEX)
+      D    DISPLAY 'MIDX 'MASS-INDEX(STAR-INDEX)
            EXIT.
 
       *********
@@ -409,8 +410,7 @@
                     TO MASS(STAR-INDEX)
            END-IF
       D    MOVE STAR-INDEX TO WS-NUMSTR
-      D    DISPLAY 'MASS(' FUNCTION TRIM(WS-NUMSTR) '): '
-                   MASS(STAR-INDEX) ' × Sol.'
+      D    DISPLAY 'MASS 'MASS(STAR-INDEX)' × Sol'
            EXIT.
 
       *********
@@ -463,19 +463,20 @@
                MOVE 'E1' TO STELLAR-POPULATION
                MOVE 0.0 TO STELLAR-AGE
            ELSE
-               CALL '1D6' USING DICEROLL
+               CALL '3D6' USING DICEROLL
                CALL '1D6' USING D6
                IF DICEROLL IS LESS OR EQUAL TO 6
                    MOVE 'Y1' TO STELLAR-POPULATION
+                   CALL '1D6' USING DICEROLL
                    COMPUTE STELLAR-AGE
                            = (DICEROLL - 1) * 0.3
                            + (D6 - 1) * 0.05
                            + 0.1
                ELSE
+                   CALL '1D6' USING DICEROLL
                    COMPUTE STELLAR-AGE
                            = (DICEROLL - 1) * 0.6
                            + (D6 - 1) * 0.1
-                   DISPLAY 'DICEROLL: 'DICEROLL
                    EVALUATE TRUE
                        WHEN DICEROLL IS LESS OR EQUAL TO 10
                            MOVE 'I1' TO STELLAR-POPULATION
@@ -492,8 +493,8 @@
                    END-EVALUATE
                END-IF
            END-IF
-      D    DISPLAY 'STELLAR-POP: ' STELLAR-POPULATION
-      D    DISPLAY 'STELLAR-AGE: ' STELLAR-AGE
+      D    DISPLAY 'POP  'STELLAR-POPULATION
+      D    DISPLAY 'AGE  'STELLAR-AGE' BYr'
            EXIT.
 
       *********
@@ -512,23 +513,29 @@
       *                T = M - (( A / S ) * ( M - 4800 ))
                        MOVE TEMPERATURE(STAR-INDEX) TO M
                        MOVE STELLAR-AGE TO A
-                       COMPUTE A =
-                           A - EVO-M-SPAN(MASS-INDEX(STAR-INDEX))
+                       COMPUTE A
+                             = A - EVO-M-SPAN(MASS-INDEX(STAR-INDEX))
                        MOVE EVO-S-SPAN(MASS-INDEX(STAR-INDEX)) TO S
-                       COMPUTE TEMPERATURE(STAR-INDEX) =
-                           M - ((A / S) * (M - 4800.0))
+                       COMPUTE TEMPERATURE(STAR-INDEX) ROUNDED
+                             = M - ((A / S) * (M - 4800.0))
                    WHEN STAGE(STAR-INDEX) = 'III' OR
                         STAGE(STAR-INDEX) = 'II'  OR
                         STAGE(STAR-INDEX) = 'Ib'  OR
                         STAGE(STAR-INDEX) = 'Ia'
-                       COMPUTE TEMPERATURE(STAR-INDEX) =
-                           3000.0 + (2000.0 * FUNCTION RANDOM)
+                       COMPUTE TEMPERATURE(STAR-INDEX) ROUNDED
+                             = 3000.0 + (2000.0 * FUNCTION RANDOM)
                END-EVALUATE
       *        +/- 100K
                MOVE 100.0 TO TMP-NUM1
-               CALL 'ALTER-VALUE-BY-UPTO' USING
-                   TMP-NUM1, TEMPERATURE(STAR-INDEX)
+      *        Note: we need to route temperature via temporary variable
+      *              because of data format difference (V9(5) vs V9(2)).
+               CALL 'ALTER-VALUE-BY-UPTO'
+                   USING TMP-NUM1,
+                         TEMPERATURE(STAR-INDEX),
+                         TMP-NUM2
+               COMPUTE TEMPERATURE(STAR-INDEX) ROUNDED = TMP-NUM2
            END-IF
+      D    DISPLAY 'TEMP 'TEMPERATURE(STAR-INDEX)'K'
            EXIT.
 
       *********
@@ -555,8 +562,7 @@
                     END-IF
                END-IF
            END-IF
-      D    DISPLAY 'STAGE(' STAR-INDEX '): '
-                   STAGE(STAR-INDEX)
+      D    DISPLAY 'STGE 'STAGE(STAR-INDEX)
            EXIT.
 
       *********
@@ -591,9 +597,10 @@
            END-EVALUATE
            CALL 'ALTER-VALUE-BY-PERCENTAGE'
                USING TEN-PERCENT,
-                     LUMINOSITY(STAR-INDEX)
-      D    DISPLAY 'LUMINOSITY(' STAR-INDEX '): '
-                   LUMINOSITY(STAR-INDEX)
+                     LUMINOSITY(STAR-INDEX),
+                     TMP-NUM1
+           COMPUTE LUMINOSITY(STAR-INDEX) = TMP-NUM1
+      D    DISPLAY 'LUM  'LUMINOSITY(STAR-INDEX)' × Sol'
            EXIT.
 
       *********
@@ -605,11 +612,12 @@
            ELSE
       *        R = (155,000 × √L) / T²
                MOVE TEMPERATURE(STAR-INDEX) TO T
-               COMPUTE L = FUNCTION SQRT(LUMINOSITY(STAR-INDEX))
-                                    * 155000.0
-               COMPUTE RADIUS(STAR-INDEX) = L / (T * T)
+               COMPUTE L ROUNDED
+                       = FUNCTION SQRT(LUMINOSITY(STAR-INDEX))
+                       * 155000.0
+               COMPUTE RADIUS(STAR-INDEX) ROUNDED = L / (T * T)
            END-IF
-      D    DISPLAY 'RADIUS('STAR-INDEX'): 'RADIUS(STAR-INDEX)
+      D    DISPLAY 'RAD  'RADIUS(STAR-INDEX)' AU'
            EXIT.
 
       *********
@@ -624,11 +632,11 @@
                STAR-INDEX,
                ORBIT(STAR-INDEX).
       D    IF STAR-INDEX > 1 THEN
-      D        DISPLAY 'ORBIT ECCENTRICITY('STAR-INDEX'): '
+      D        DISPLAY 'OECC '
                        ECCENTRICITY(STAR-INDEX)
-      D        DISPLAY '      MIN: 'MINR(STAR-INDEX)' AU'
-      D        DISPLAY '      AVG: 'AVGR(STAR-INDEX)' AU'
-      D        DISPLAY '      MAX: 'MAXR(STAR-INDEX)' AU'
+      D        DISPLAY '  min: 'MINR(STAR-INDEX)' AU'
+      D        DISPLAY '  avg: 'AVGR(STAR-INDEX)' AU'
+      D        DISPLAY '  max: 'MAXR(STAR-INDEX)' AU'
       D    END-IF
            EXIT.
 
@@ -640,18 +648,8 @@
       *
       *********
        DETERMINE-ORBIT-LIMITS.
-      *    Inner limit:
-           COMPUTE TMP-NUM1 = MASS(STAR-INDEX) / 10.0
-           COMPUTE TMP-NUM2 =
-                   FUNCTION SQRT(LUMINOSITY(STAR-INDEX)) / 100.0
-
-           IF TMP-NUM1 > TMP-NUM2 THEN
-               MOVE TMP-NUM1 TO INNER-LIMIT(STAR-INDEX)
-           ELSE
-               MOVE TMP-NUM2 TO INNER-LIMIT(STAR-INDEX)
-           END-IF
-
-           COMPUTE OUTER-LIMIT(STAR-INDEX) = MASS(STAR-INDEX) * 40.0
-           COMPUTE SNOW-LINE(STAR-INDEX) =
-                   FUNCTION SQRT(LUMINOSITY(STAR-INDEX)) * 4.85
+           CALL 'STAR-ORBIT-LIMITS' USING
+                   MASS(STAR-INDEX),
+                   LUMINOSITY(STAR-INDEX),
+                   ORBITAL-LIMITS(STAR-INDEX)
            EXIT.
