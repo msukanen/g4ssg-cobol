@@ -64,6 +64,10 @@
        01  S                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
        01  T                           PIC 9(5)V9(5) USAGE COMP-3.        TMP
        01  WS-NUMSTR                   PIC ZZZZZZZZZZZ.                 Z-STRING
+       01  WS-DIRECTION                PIC X.
+           COPY SHIFTDIR.
+       01  WS-DISTANCE.
+           COPY DISTSHFT.
       *********
       * Star system data goes here:
       *********
@@ -95,13 +99,17 @@
            02  EVO-S-SPAN              PIC 9(5)V9(5) USAGE COMP-3.
            02  EVO-G-SPAN              PIC 9(5)V9(5) USAGE COMP-3.
        01  MASS-IDX-OFF                PIC 99.
-       01  CREATING-COMPANION          PIC X VALUE 'N'.
+       01  WS-CREATING-COMPANION       PIC X VALUE 'N'.
+           88  CREATING-COMPANION          VALUE 'Y'
+                                           WHEN SET TO FALSE IS 'N'.
       *********
       * All the info pertaining to a star system that is/was being
       * generated:
       *********
        01  STAR-SYSTEM.
-           05  IN-CLUSTER-OR-CORE      PIC X VALUE 'N'.
+           05  WS-IN-CLUSTER-OR-CORE   PIC X VALUE 'N'.
+               88  IN-CLUSTER-OR-CORE      VALUE 'Y'
+                                           WHEN SET TO FALSE IS 'N'.
            05  STAR-SYSTEM-NAME        PIC X(48).
       *        Stellar populations, in order of general age:
       *            E1, Y1, I1, O1, I2, and E2.
@@ -121,22 +129,25 @@
       * TODO:      There are of course others stages/sizes, but we're
       *            not generating those (yet).
                10  STAGE               PIC X(4).
-               10  MASS                PIC 9(5)V9(5) USAGE COMP-3.      ×Sol
-               10  TEMPERATURE         PIC 9(5)V9(2) USAGE COMP-3.      K
-               10  LUMINOSITY          PIC 9(5)V9(5) USAGE COMP-3.      ×Sol
-               10  RADIUS              PIC 9(5)V9(5) USAGE COMP-3.      AU
+               10  MASS                PIC 9(5)V9(5) USAGE COMP-3.        ×Sol
+               10  TEMPERATURE         PIC 9(5)V9(2) USAGE COMP-3.         K
+               10  LUMINOSITY          PIC 9(5)V9(5) USAGE COMP-3.        ×Sol
+               10  RADIUS              PIC 9(5)V9(5) USAGE COMP-3.         AU
                10  ORBIT.
                    15  ECCENTRICITY    PIC 9V9(2) USAGE COMP-3.
                    15  SEPARATION      PIC XX.
                    15  DISTANCE.
-                       20  MINR        PIC 9(5)V9(3) USAGE COMP-3.      AU
-                       20  AVGR        PIC 9(5)V9(3) USAGE COMP-3.      AU
-                       20  MAXR        PIC 9(5)V9(3) USAGE COMP-3.      AU
+                       20  MINR        PIC 9(5)V9(3) USAGE COMP-3.         AU
+                       20  AVGR        PIC 9(5)V9(3) USAGE COMP-3.         AU
+                       20  MAXR        PIC 9(5)V9(3) USAGE COMP-3.         AU
                10  ORBITAL-LIMITS.
-                   15  INNER-LIMIT     PIC 9(5)V9(5) USAGE COMP-3.      AU
-                   15  OUTER-LIMIT     PIC 9(5)V9(5) USAGE COMP-3.      AU
-                   15  SNOW-LINE       PIC 9(5)V9(5) USAGE COMP-3.      AU
-
+                   15  INNER-LIMIT     PIC 9(5)V9(5) USAGE COMP-3.         AU
+                   15  OUTER-LIMIT     PIC 9(5)V9(5) USAGE COMP-3.         AU
+                   15  SNOW-LINE       PIC 9(5)V9(5) USAGE COMP-3.         AU
+               10  GG-ARRANGEMENT.
+                   15  ORBIT-RADIUS    PIC 9(5)V9(5) USAGE COMP-3.         AU
+                   15  ARRANGEMENT     PIC XX.
+               10  NUm-OF-ORBITS       PIC 99 VALUE 0.
 
        LINKAGE SECTION.
       *********
@@ -163,9 +174,12 @@
                    INTO PARSED-FIELD
                    WITH POINTER PARM-INDEX
                END-UNSTRING
+               
+               STRING FUNCTION TRIM(PARSED-FIELD) DELIMITED BY SIZE
+                      INTO PARSED-FIELD
 
                IF PARSED-FIELD(1:1) = 'C' THEN
-                   MOVE 'Y' TO IN-CLUSTER-OR-CORE
+                   SET IN-CLUSTER-OR-CORE TO TRUE
                    DISPLAY 'Generating star system in a cluster/core.'
                END-IF
            END-PERFORM.
@@ -322,7 +336,7 @@
                PERFORM DETERMINE-MASS-INDEX-X
            END-IF
 
-           IF CREATING-COMPANION = 'Y' THEN
+           IF CREATING-COMPANION THEN
       *        If creating a companion star, we step mass-index deeper
       *        by 1d6-1 steps (capping to MAX-EVO, of course).
                CALL '1D6' USING DICEROLL
@@ -331,7 +345,7 @@
                    MOVE MAX-EVO TO D6
                END-IF
                MOVE D6 TO MASS-INDEX(STAR-INDEX)
-               MOVE 'N' TO CREATING-COMPANION
+               SET CREATING-COMPANION TO FALSE
            END-IF
       D    DISPLAY 'MIDX 'MASS-INDEX(STAR-INDEX)
            EXIT.
@@ -658,8 +672,11 @@
 
       *********
       * Place planets!
-      *
-      * Start with gas giants, if any...
       *********
        PLACE-PLANETS.
+      *    Start with gas giants, if any...
+           CALL 'GAS-GIANT-ARRANGEMENT' USING
+                   ORBITAL-LIMITS(STAR-INDEX),
+                   GG-ARRANGEMENT(STAR-INDEX)
+           
            EXIT.

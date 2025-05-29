@@ -4,7 +4,7 @@
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01  WS-CHANGE                   USAGE COMP-1.
+       01  WS-CHANGE                   PIC 9(5)V9(5) USAGE COMP-3.
        
        LINKAGE SECTION.
        01  VAR-BY-UPTO                 PIC 9(5)V9(5) USAGE COMP-3.
@@ -20,10 +20,12 @@
       *
       *********
        PROCEDURE DIVISION USING VAR-BY-UPTO, VAR-VALUE, RET-VALUE.
-           COMPUTE WS-CHANGE = FUNCTION RANDOM * VAR-BY-UPTO
+           COMPUTE WS-CHANGE ROUNDED = FUNCTION RANDOM * VAR-BY-UPTO
+      *D    DISPLAY 'WS-CHANGE 'WS-CHANGE
            IF FUNCTION RANDOM < 0.5 THEN
                COMPUTE RET-VALUE ROUNDED = VAR-VALUE - WS-CHANGE
            ELSE
                COMPUTE RET-VALUE ROUNDED = VAR-VALUE + WS-CHANGE
            END-IF
+      *D    DISPLAY 'RET-VALUE 'RET-VALUE
            GOBACK.
