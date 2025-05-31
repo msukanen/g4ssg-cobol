@@ -17,6 +17,6 @@
       * Some error codes:
       *
       * TODO: Black hole temperature - how to figure out?
-       77  ERR-BH-TEMP                 PIC 999 VALUE 333                CONSTANT
+       77  ERR-BH-TEMP                 PIC 999 VALUE 333.               CONSTANT
       * TODO: Black hole mass - how much should it differ from main-seq?
-       77  ERR-BH-MASS                 PIC 999 VALUE 334                CONSTANT
+       77  ERR-BH-MASS                 PIC 999 VALUE 334.               CONSTANT
