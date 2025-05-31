@@ -1,82 +1,61 @@
 cmake_minimum_required(VERSION 3.10)
 project(G4SSG)
 
-set(MAIN_SOURCE WRAPPER.cbl
-    cbl/MAIN.cbl
-    cbl/rng/*.cbl
-    cbl/ORBIT*.cbl cbl/PLGG.cbl
-)
-set(TEST1_SOURCE test/VARIATST.cbl cbl/rng/ALTERVA?.cbl)
-set(TEST2_SOURCE test/ORBITDET.cbl cbl/ORBITDET.cbl cbl/rng/?D6.cbl)
-set(TEST3_SOURCE test/ORBITLIM.cbl cbl/ORBITLIM.cbl cbl/rng/?D6.cbl)
-set(TEST4_SOURCE test/ORBITSPC.cbl cbl/ORBITSPC.cbl cbl/rng/ALTERVA1.cbl cbl/rng/?D6.cbl)
+enable_testing()
+
+set(CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin")
 
 set(COBOL_COMPILER cobc)
 set(COBOL_FLAGS -x -Icbl/cpy)
 set(COBOL_DEBUG )
-set(OUT_EXE bin/g4ssg)
 
-set(TEST1_EXE bin/testvar)
-set(TEST2_EXE bin/testorbd)
-set(TEST3_EXE bin/testorbl)
-set(TEST4_EXE bin/testorbs)
+set(MAIN_SOURCE WRAPPER.cbl
+    cbl/MAIN.cbl
+    cbl/rng/*.cbl
+    cbl/D*.cbl
+)
+set(MAIN_EXE g4ssg)
+set(MAIN_PATH ${CMAKE_CURRENT_BINARY_DIR}/${MAIN_EXE})
 
+#
+# Main App.
+#
 add_custom_command(
-    OUTPUT ${OUT_EXE}
-    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${OUT_EXE} ${MAIN_SOURCE}
+    OUTPUT ${MAIN_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${MAIN_PATH} ${MAIN_SOURCE}
     DEPENDS ${MAIN_SOURCE}
-    COMMENT "Compiling G4SSG ..."
+    COMMENT "Compiling main application (${MAIN_EXE}) ..."
 )
+add_custom_target(build_cobol ALL DEPENDS ${MAIN_PATH})
 
-add_custom_target(
-    build_cobol ALL
-    DEPENDS ${OUT_EXE}
-)
-
+#
+# DLUM testing.
+#
+set(TEST_DLUM_SRC test/DLUM.cbl cbl/DLUM.cbl cbl/rng/ALTERVA?.cbl)
+set(TEST_DLUM_EXE tdlum)
+set(TEST_DLUM_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_DLUM_EXE})
 add_custom_command(
-    OUTPUT ${TEST1_EXE}
-    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST1_EXE} ${TEST1_SOURCE}
-    DEPENDS ${TEST1_SOURCE}
-    COMMENT "Compiling test ${TEST1_EXE} ..."
+    OUTPUT ${TEST_DLUM_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_DLUM_PATH} ${TEST_DLUM_SRC}
+    DEPENDS ${TEST_DLUM_SRC}
+    COMMENT "Compiling test: ${TEST_DLUM_EXE}"
+    VERBATIM
 )
+add_custom_target(build_${TEST_DLUM_EXE} ALL DEPENDS ${TEST_DLUM_PATH})
+add_test(NAME TestDLum COMMAND ${TEST_DLUM_PATH})
 
-add_custom_target(
-    build_cobol_test1 ALL
-    DEPENDS ${TEST1_EXE}
-)
-
+#
+# DSEQ testing.
+#
+set(TEST_DSEQ_SRC test/DSEQ.cbl cbl/DSEQ.cbl cbl/rng/ALTERVA?.cbl)
+set(TEST_DSEQ_EXE tdseq)
+set(TEST_DSEQ_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_DSEQ_EXE})
 add_custom_command(
-    OUTPUT ${TEST2_EXE}
-    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST2_EXE} ${TEST2_SOURCE}
-    DEPENDS ${TEST2_SOURCE}
-    COMMENT "Compiling test ${TEST2_EXE} ..."
+    OUTPUT ${TEST_DSEQ_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_DSEQ_PATH} ${TEST_DSEQ_SRC}
+    DEPENDS ${TEST_DSEQ_SRC}
+    COMMENT "Compiling test: ${TEST_DSEQ_EXE}"
+    VERBATIM
 )
-
-add_custom_target(
-    build_cobol_test2 ALL
-    DEPENDS ${TEST2_EXE}
-)
-
-add_custom_command(
-    OUTPUT ${TEST3_EXE}
-    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST3_EXE} ${TEST3_SOURCE}
-    DEPENDS ${TEST3_SOURCE}
-    COMMENT "Compiling test ${TEST3_EXE} ..."
-)
-
-add_custom_target(
-    build_cobol_test3 ALL
-    DEPENDS ${TEST3_EXE}
-)
-
-add_custom_command(
-    OUTPUT ${TEST4_EXE}
-    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST4_EXE} ${TEST4_SOURCE}
-    DEPENDS ${TEST4_SOURCE}
-    COMMENT "Compiling test ${TEST4_EXE} ..."
-)
-
-add_custom_target(
-    build_cobol_test4 ALL
-    DEPENDS ${TEST4_EXE}
-)
+add_custom_target(build_${TEST_DSEQ_EXE} ALL DEPENDS ${TEST_DSEQ_PATH})
+add_test(NAME TestDSeq COMMAND ${TEST_DSEQ_PATH})

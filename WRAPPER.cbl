@@ -5,7 +5,7 @@
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        01  PARM.
-           05  PARM-LENGTH      PIC 9(4).
+           05  PARM-LENGTH      PIC 999.
            05  PARM-DATA        PIC X(100).
 
        PROCEDURE DIVISION.

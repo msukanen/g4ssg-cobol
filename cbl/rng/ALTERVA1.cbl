@@ -4,12 +4,12 @@
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01  WS-CHANGE                   PIC 9(5)V9(5) USAGE COMP-3.
+       01  WS-CHANGE                   USAGE COMP-2.
        
        LINKAGE SECTION.
-       01  VAR-BY-UPTO                 PIC 9(5)V9(5) USAGE COMP-3.
-       01  VAR-VALUE                   PIC 9(5)V9(5) USAGE COMP-3.
-       01  RET-VALUE                   PIC 9(5)V9(5) USAGE COMP-3.
+       01  VAR-BY-UPTO                 USAGE COMP-2.
+       01  VAR-VALUE                   USAGE COMP-2.
+       01  RET-VALUE                   USAGE COMP-2.
 
       *********
       * Alter the given value by up to some given percentage up/down.
@@ -20,12 +20,15 @@
       *
       *********
        PROCEDURE DIVISION USING VAR-BY-UPTO, VAR-VALUE, RET-VALUE.
-           COMPUTE WS-CHANGE ROUNDED = FUNCTION RANDOM * VAR-BY-UPTO
-      *D    DISPLAY 'WS-CHANGE 'WS-CHANGE
+           COMPUTE WS-CHANGE = FUNCTION RANDOM * VAR-BY-UPTO
+      D    DISPLAY '[alter-value-by-upto]' NO ADVANCING
+      D    DISPLAY '  ±0—' VAR-BY-UPTO NO ADVANCING
+      D    DISPLAY ' (' WS-CHANGE ')' NO ADVANCING
+      D    DISPLAY ' of ' VAR-VALUE NO ADVANCING
            IF FUNCTION RANDOM < 0.5 THEN
-               COMPUTE RET-VALUE ROUNDED = VAR-VALUE - WS-CHANGE
+               COMPUTE RET-VALUE = VAR-VALUE - WS-CHANGE
            ELSE
-               COMPUTE RET-VALUE ROUNDED = VAR-VALUE + WS-CHANGE
+               COMPUTE RET-VALUE = VAR-VALUE + WS-CHANGE
            END-IF
-      *D    DISPLAY 'RET-VALUE 'RET-VALUE
+      D    DISPLAY ' = 'RET-VALUE
            GOBACK.

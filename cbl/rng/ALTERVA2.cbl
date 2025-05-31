@@ -4,13 +4,13 @@
 
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01  WS-CHANGE                   PIC 9(5)V9(5) USAGE COMP-3.
-       01  WS-MUL                      PIC 9(5)V9(5) USAGE COMP-3.
+       01  WS-CHANGE                   USAGE COMP-2.
+       01  WS-MUL                      USAGE COMP-2.
        
        LINKAGE SECTION.
-       01  VAR-PERCENTAGE              PIC 9(5)V9(5) USAGE COMP-3.
-       01  VAR-VALUE                   PIC 9(5)V9(5) USAGE COMP-3.
-       01  RET-VALUE                   PIC 9(5)V9(5) USAGE COMP-3.
+       01  VAR-PERCENTAGE              USAGE COMP-2.
+       01  VAR-VALUE                   USAGE COMP-2.
+       01  RET-VALUE                   USAGE COMP-2.
 
       *********
       * Alter the given value by up to some given percentage up/down.
@@ -27,4 +27,7 @@
                USING WS-CHANGE,
                      VAR-VALUE,
                      RET-VALUE
+      D    DISPLAY '[alter-value-by-percentage]'
+      D    DISPLAY ' ±'VAR-PERCENTAGE'%' NO ADVANCING
+      D    DISPLAY ' of 'VAR-VALUE' → 'RET-VALUE
            GOBACK.
