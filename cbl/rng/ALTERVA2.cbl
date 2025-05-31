@@ -27,7 +27,8 @@
                USING WS-CHANGE,
                      VAR-VALUE,
                      RET-VALUE
-      D    DISPLAY '[alter-value-by-percentage]'
+      D    DISPLAY '[alter-value-by-percentage]' NO ADVANCING
       D    DISPLAY ' ±'VAR-PERCENTAGE'%' NO ADVANCING
-      D    DISPLAY ' of 'VAR-VALUE' → 'RET-VALUE
+      D    DISPLAY ' of 'VAR-VALUE' = 'RET-VALUE NO ADVANCING
+      D    DISPLAY ' (by 'WS-CHANGE')'
            GOBACK.

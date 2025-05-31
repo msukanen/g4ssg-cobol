@@ -7,7 +7,6 @@
        COPY CONST.
        01  WS-LUM                      USAGE COMP-2.
        01  WS-TMP1                     USAGE COMP-2.
-       COPY ALTBY10.
 
        LINKAGE SECTION.
        01  LK-EVO.
@@ -19,6 +18,7 @@
 
        PROCEDURE DIVISION USING        LK-EVO, LK-STAGE, LK-AGE,
                                        LUMINOSITY.
+      D    DISPLAY '[determine-luminosity]'
            IF EVO-L-MAX IS EQUAL TO INF-LIFESPAN
                COMPUTE WS-LUM = EVO-L-MIN
            ELSE EVALUATE TRUE
@@ -30,18 +30,17 @@
                            )
                WHEN CLASS-IV
                    COMPUTE WS-LUM = EVO-L-MAX
-               WHEN  CLASS-III OR
+               WHEN CLASS-III OR
                      CLASS-II OR
                      CLASS-IA OR
                      CLASS-IB
                    COMPUTE WS-LUM = 25.0 * EVO-L-MAX
+               WHEN OTHER
+                   MOVE 0.0 TO WS-LUM
                END-EVALUATE
            END-IF
-      D    DISPLAY 'WS-LUM 'WS-LUM
-
-           CALL 'ALTER-VALUE-BY-PERCENTAGE' USING
-                                       TEN-PERCENT, WS-LUM, WS-TMP1
+           CALL 'ALTER-VALUE-BY-PERCENTAGE'
+                   USING TEN-PERCENT, WS-LUM, WS-TMP1
            COMPUTE LUMINOSITY ROUNDED = WS-TMP1
-      D    DISPLAY '[luminosity]'
       D    DISPLAY '  sol× = 'LUMINOSITY
            GOBACK.

@@ -13,21 +13,21 @@
        01  WS-LUM                      PIC 9(12)V9 USAGE COMP-3.
        01  WS-TMP1                     USAGE COMP-2.
        01  WS-TMP2                     USAGE COMP-2.
-       COPY ALTBY10.
-       01  LK-EVO.
+       01  WS-EVO.
            COPY STLREVO.
-       01  LK-STAGE                    PIC X(4).
+       01  WS-STAGE                    PIC X(4).
            COPY STARSTG.
-       01  LK-AGE                      PIC 99V99.
+       01  WS-AGE                      PIC 99V99.
+      *LINKAGE SECTION.
        01  LUMINOSITY                  PIC 9(12)V9(3) USAGE COMP-3.
 
        PROCEDURE DIVISION.
            MOVE 1.7 TO EVO-L-MIN
            MOVE 3.0 TO EVO-L-MAX
-           MOVE 4.9 TO LK-AGE
+           MOVE 4.9 TO WS-AGE
            MOVE 5.9 TO EVO-M-SPAN
            SET CLASS-V TO TRUE
            CALL 'DETERMINE-LUMINOSITY' USING
-                                       LK-EVO, LK-STAGE, LK-AGE,
+                                       WS-EVO, WS-STAGE, WS-AGE,
                                        LUMINOSITY
            STOP RUN.
