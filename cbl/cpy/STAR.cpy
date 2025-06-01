@@ -4,5 +4,13 @@
            05  STAGE                   PIC X(4).
                COPY STARSTG.
            05  TEMPERATURE             PIC 9(6)V9 USAGE COMP-3.          K
-           05  LUMINOSITY              PIC 9(12)V9 USAGE COMP-3.         × Sol
+      *************
+      * The brightest object in the universe (for now) would require
+      * luminosity field for at least 15 integers + some decimal(s).
+      *
+      * See https://www.smithsonianmag.com/smart-news/astronomers-discover-the-brightest-known-object-in-the-universe-shining-500-trillion-times-as-bright-as-the-sun-180983815/
+      *
+           05  LUMINOSITY              PIC 9(15)V99 USAGE COMP-3.        × Sol
            05  RADIUS                  PIC 9(5)V9(5) USAGE COMP-3.       AU
+           05  ORBITAL-ZONES.
+               COPY ORBZONE.
