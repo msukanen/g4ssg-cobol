@@ -22,8 +22,7 @@
        WORKING-STORAGE SECTION.
       *********************************
       * Random number generation:
-       01  D6                          PIC 999 USAGE COMP-3.            Prim. d6
-       01  D62                         PIC 999 USAGE COMP-3.            Scnd. d6
+       COPY RNG.
        01  WS-TMP-STR                  PIC X(100).
        01  WS-TMP-NUM0                 USAGE COMP-2.
        01  WS-TMP-NUM1                 USAGE COMP-2.
@@ -70,6 +69,8 @@
                    DEPENDING ON WS-NUM-STARS
                    INDEXED BY STAR-IDX.
            COPY STAR.
+           COPY ORBSEPV.
+           COPY ORBZONE.
 
        LINKAGE SECTION.
        01  LK-PARM.
@@ -395,7 +396,23 @@
       *
        DETERMINE-RADIUS.
            EVALUATE TRUE
+               WHEN CLASS-X(STAR-IDX)
+      *TODO
+      *            Black holes are miniscule, but their -effective- size
+      *            is as big as it was in main sequence. This, of course
+      *            does NOT hold true for black holes that have vacuumed
+      *            neighborhood for a "while" or which have gone through
+      *            a black hole merger or alike.
+                   MOVE NOT-AVAILABLE TO RADIUS(STAR-IDX)
                WHEN CLASS-D(STAR-IDX)
+      *            White dwarves are tiny ...
                    MOVE 0.0 TO RADIUS(STAR-IDX)
+               WHEN OTHER
+      *            R = (155,000 × sqrt L) / T²
+                   COMPUTE WS-TMP-NUM0 =                                 √L
+                           FUNCTION SQRT(LUMINOSITY(STAR-IDX))
+                   COMPUTE RADIUS(STAR-IDX) ROUNDED =
+                           (155000.0 * WS-TMP-NUM0) /
+                           (TEMPERATURE(STAR-IDX) ** 2)
            END-EVALUATE
            EXIT PARAGRAPH.

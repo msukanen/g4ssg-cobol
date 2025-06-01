@@ -8,8 +8,7 @@
       ******************************************************************
        DATA DIVISION.
        WORKING-STORAGE SECTION.
-       01  D6                          PIC 999 USAGE COMP-3.
-       01  D62                         PIC 999 USAGE COMP-3.
+       COPY RNG.
        01  WS-BASE-AGE                 PIC 99V99.
            COPY STLRPOP2.
       D01  WS-TMP-AGESTR               PIC Z9.99.

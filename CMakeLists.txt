@@ -13,6 +13,7 @@ set(MAIN_SOURCE WRAPPER.cbl
     cbl/MAIN.cbl
     cbl/rng/*.cbl
     cbl/D*.cbl
+    cbl/O*.cbl
 )
 set(MAIN_EXE g4ssg)
 set(MAIN_PATH ${CMAKE_CURRENT_BINARY_DIR}/${MAIN_EXE})
@@ -59,3 +60,35 @@ add_custom_command(
 )
 add_custom_target(build_${TEST_DSEQ_EXE} ALL DEPENDS ${TEST_DSEQ_PATH})
 add_test(NAME TestDSeq COMMAND ${TEST_DSEQ_PATH})
+
+#
+# OECC testing.
+#
+set(TEST_OECC_SRC test/OECC.cbl cbl/OECC.cbl cbl/rng/1D6.cbl cbl/rng/3D6.cbl)
+set(TEST_OECC_EXE toecc)
+set(TEST_OECC_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_OECC_EXE})
+add_custom_command(
+    OUTPUT ${TEST_OECC_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_OECC_PATH} ${TEST_OECC_SRC}
+    DEPENDS ${TEST_OECC_SRC}
+    COMMENT "Compiling test: ${TEST_OECC_EXE}"
+    VERBATIM
+)
+add_custom_target(build_${TEST_OECC_EXE} ALL DEPENDS ${TEST_OECC_PATH})
+add_test(NAME TestOEcc COMMAND ${TEST_OECC_PATH})
+
+#
+# OSEP testing.
+#
+set(TEST_OSEP_SRC test/OSEP.cbl cbl/OSEP.cbl cbl/OECC.cbl cbl/rng/?D6.cbl cbl/rng/ALTERVA?.cbl)
+set(TEST_OSEP_EXE tosep)
+set(TEST_OSEP_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_OSEP_EXE})
+add_custom_command(
+    OUTPUT ${TEST_OSEP_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_OSEP_PATH} ${TEST_OSEP_SRC}
+    DEPENDS ${TEST_OSEP_SRC}
+    COMMENT "Compiling test: ${TEST_OSEP_EXE}"
+    VERBATIM
+)
+add_custom_target(build_${TEST_OSEP_EXE} ALL DEPENDS ${TEST_OSEP_PATH})
+add_test(NAME TestOSep COMMAND ${TEST_OSEP_PATH})
