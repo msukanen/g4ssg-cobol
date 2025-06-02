@@ -109,3 +109,19 @@ add_custom_command(
 )
 add_custom_target(build_${TEST_ORBZ_EXE} ALL DEPENDS ${TEST_ORBZ_PATH})
 add_test(NAME TestOZone COMMAND ${TEST_ORBZ_PATH})
+
+#
+# PGGA testing.
+#
+set(TEST_PGGA_SRC test/PGGA.cbl cbl/PGGA.cbl cbl/XPGGA.cbl cbl/rng/?D6.cbl)
+set(TEST_PGGA_EXE tpgga)
+set(TEST_PGGA_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_PGGA_EXE})
+add_custom_command(
+    OUTPUT ${TEST_PGGA_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_PGGA_PATH} ${TEST_PGGA_SRC}
+    DEPENDS ${TEST_PGGA_SRC} ${CPY_DEPS}
+    COMMENT "Compiling test: ${TEST_PGGA_EXE}"
+    VERBATIM
+)
+add_custom_target(build_${TEST_PGGA_EXE} ALL DEPENDS ${TEST_PGGA_PATH})
+add_test(NAME TestPGGA COMMAND ${TEST_PGGA_PATH})

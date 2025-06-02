@@ -21,6 +21,8 @@
            MOVE 1.0 TO MASS
            MOVE 1.0 TO LUMINOSITY
            PERFORM I1I2
+      * Lets keep going until luminosity pushes limits further than mass
+      * alone would do.
            PERFORM VARYING WS-COUNT FROM 1 BY 1 UNTIL WS-I2 > WS-I1
                IF WS-COUNT > 1 THEN
                    DISPLAY '________ _____._____'
