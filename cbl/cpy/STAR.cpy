@@ -1,3 +1,8 @@
+      ******************************************************************
+      *
+      * Data pertaining to an individual star (or other at least equally
+      * massive celestial object).
+      *
       *        Mass-index, as per 4eSpace mass, but as an index.
            05  MASS-INDEX              INDEX.
            05  MASS                    PIC 9(5)V9(5) USAGE COMP-3.       × Sol
@@ -14,3 +19,7 @@
            05  RADIUS                  PIC 9(5)V9(5) USAGE COMP-3.       AU
            05  ORBITAL-ZONES.
                COPY ORBZONE.
+           05  PRIMARY-GAS-GIANT.
+               10  GG-DISTANCE         PIC 9(5)V9(5) USAGE COMP-3.       AU
+               10  GG-ARRANGEMENT      PIC 9.
+                   COPY GGA.

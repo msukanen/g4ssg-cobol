@@ -10,8 +10,8 @@
 
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           SELECT CSV-FILE             ASSIGN TO "data/SPECS.csv"
-                                       ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT CSV-FILE ASSIGN TO "data/SPECS.csv"
+                           ORGANIZATION IS LINE SEQUENTIAL.
 
        DATA DIVISION.
        FILE SECTION.
@@ -394,7 +394,7 @@
       *********************************
       * Determine a star's radius (in AU).
       *
-       DETERMINE-RADIUS.
+       DETERMINE-STAR-RADIUS.
            EVALUATE TRUE
                WHEN CLASS-X(STAR-IDX)
       *TODO
