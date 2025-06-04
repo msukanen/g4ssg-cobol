@@ -21,14 +21,14 @@
       *********
        PROCEDURE DIVISION USING VAR-BY-UPTO, VAR-VALUE, RET-VALUE.
            COMPUTE WS-CHANGE = FUNCTION RANDOM * VAR-BY-UPTO
-      D    DISPLAY '[alter-value-by-upto]' NO ADVANCING
-      D    DISPLAY ' ±[0..' VAR-BY-UPTO']' NO ADVANCING
-      D    DISPLAY ' → ' WS-CHANGE NO ADVANCING
-      D    DISPLAY ' of ' VAR-VALUE NO ADVANCING
+      *    DISPLAY '[alter-value-by-upto]'
+      *            ' ±[0..' VAR-BY-UPTO']'
+      *            ' → ' WS-CHANGE
+      *            ' of ' VAR-VALUE NO ADVANCING
            IF FUNCTION RANDOM < 0.5 THEN
                COMPUTE RET-VALUE = VAR-VALUE - WS-CHANGE
            ELSE
                COMPUTE RET-VALUE = VAR-VALUE + WS-CHANGE
            END-IF
-      D    DISPLAY ' = 'RET-VALUE
+      *    DISPLAY ' = 'RET-VALUE
            GOBACK.

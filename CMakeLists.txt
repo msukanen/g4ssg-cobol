@@ -22,6 +22,7 @@ set(MAIN_SOURCE WRAPPER.cbl
     cbl/D*.cbl
     cbl/O*.cbl
     cbl/P*.cbl
+    cbl/S*.cbl
     cbl/X*.cbl
 )
 set(MAIN_EXE g4ssg)
@@ -101,7 +102,7 @@ add_test(NAME TestOSep COMMAND ${TEST_OSEP_PATH})
 #
 # ORBZ testing.
 #
-set(TEST_ORBZ_SRC test/ORBZ.cbl cbl/ORBZ.cbl)
+set(TEST_ORBZ_SRC test/ORBZ.cbl cbl/ORBZ.cbl cbl/STRFMT5.cbl)
 set(TEST_ORBZ_EXE torbz)
 set(TEST_ORBZ_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_ORBZ_EXE})
 add_custom_command(
@@ -129,3 +130,19 @@ add_custom_command(
 )
 add_custom_target(build_${TEST_PGGA_EXE} ALL DEPENDS ${TEST_PGGA_PATH})
 add_test(NAME TestPGGA COMMAND ${TEST_PGGA_PATH})
+
+#
+# Some foobar string testing.
+#
+set(TEST_STRFMT_SRC test/STRFMT.cbl cbl/STRFMT?.cbl cbl/STRFMT??.cbl)
+set(TEST_STRFMT_EXE tstrfmt)
+set(TEST_STRFMT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_STRFMT_EXE})
+add_custom_command(
+    OUTPUT ${TEST_STRFMT_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_STRFMT_PATH} ${TEST_STRFMT_SRC}
+    DEPENDS ${TEST_STRFMT_SRC}
+    COMMENT "Compiling test: ${TEST_STRFMT_EXE}"
+    VERBATIM
+)
+add_custom_target(build_${TEST_STRFMT_EXE} ALL DEPENDS ${TEST_STRFMT_PATH})
+add_test(NAME TestStrFormatting COMMAND ${TEST_STRFMT_PATH})

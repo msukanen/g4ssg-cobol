@@ -17,7 +17,7 @@
 
        PROCEDURE DIVISION.
            PERFORM VARYING X FROM 1 BY 1 UNTIL X > TIMES-TO-TEST
-               CALL 'DETERMINE-GAS-GIANT-ARRANGEMENT' USING WS-STAR
+               CALL 'DETERMINE-GG-ARRANGEMENT' USING WS-STAR
                IF GG-ARRANGEMENT < 1 OR GG-ARRANGEMENT > 4 THEN
                    DISPLAY 'Something is awfully wrong with GGA...'
                            NO ADVANCING
@@ -26,8 +26,8 @@
                    STOP RUN
                END-IF
                DISPLAY ' GGA: 'GG-ARRANGEMENT' = ' NO ADVANCING
-               CALL 'EXPLAIN-GAS-GIANT-ARRANGEMENT'
-                                       USING GG-ARRANGEMENT, WS-XPGGA
+               CALL 'EXPLAIN-GG-ARRANGEMENT'
+                   USING GG-ARRANGEMENT, WS-XPGGA
                DISPLAY FUNCTION TRIM(WS-XPGGA)
            END-PERFORM
            SUBTRACT 1 FROM X GIVING X

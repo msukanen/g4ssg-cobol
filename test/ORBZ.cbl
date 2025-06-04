@@ -15,9 +15,17 @@
        01  WS-I2                       USAGE COMP-2.
        01  WS-L                        USAGE COMP-2.
        01  WS-COUNT                    USAGE COMP-1 VALUE 0.
+       01  WS-STR                      PIC X(11).
+       01  DISPLAY-STR                 PIC X(79).
+       COPY ANSI.
        
        PROCEDURE DIVISION.
-      D    DISPLAY '[test-orbital-zones]'
+           STRING ANSI-ESC ANSI-GREEN
+                  '[test-orbital-zones]'
+                  ANSI-ESC ANSI-RESET
+                  DELIMITED BY SIZE
+                  INTO DISPLAY-STR
+           DISPLAY FUNCTION TRIM(DISPLAY-STR)
            MOVE 1.0 TO MASS
            MOVE 1.0 TO LUMINOSITY
            PERFORM I1I2
@@ -42,10 +50,13 @@
            STOP RUN.
 
        LOCATE.
-           CALL 'LOCATE-ORBITAL-ZONES' USING WS-STAR, ORBITAL-ZONES
-      D    DISPLAY '   inner 'OZ-INNER-LIMIT
-      D    DISPLAY '   outer 'OZ-OUTER-LIMIT
-      D    DISPLAY 'snowline 'OZ-SNOW-LINE
+           CALL 'PLACE-ORBITAL-ZONES' USING WS-STAR, ORBITAL-ZONES
+      D    CALL 'FMT-NUM' USING OZ-INNER-LIMIT, WS-STR
+      D    DISPLAY '   inner ' FUNCTION TRIM(WS-STR) ' AU'
+      D    CALL 'FMT-NUM' USING OZ-OUTER-LIMIT, WS-STR
+      D    DISPLAY '   outer ' FUNCTION TRIM(WS-STR) ' AU'
+      D    CALL 'FMT-NUM' USING OZ-SNOW-LINE, WS-STR
+      D    DISPLAY 'snowline ' FUNCTION TRIM(WS-STR) ' AU'
            EXIT PARAGRAPH.
 
        I1I2.

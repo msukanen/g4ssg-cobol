@@ -28,6 +28,6 @@
            MOVE 5.9 TO EVO-M-SPAN
            SET CLASS-V TO TRUE
            CALL 'DETERMINE-LUMINOSITY' USING
-                                       WS-EVO, WS-STAGE, WS-AGE,
+                                       WS-EVO, WS-AGE, WS-STAGE,
                                        LUMINOSITY
            STOP RUN.

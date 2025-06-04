@@ -1,13 +1,13 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. G4SSGCRE.
-       AUTHOR.     Markku Sukanen.
+       PROGRAM-ID.   G4SSGCRE.
+       AUTHOR.       Markku Sukanen.
+       DATE-WRITTEN. June 3, 2025
       ******************************************************************
       *
       * Star system generator, based on "GURPS 4e Space" rules.
       *
       ******************************************************************
-       COPY TESTENV.
-
+       COPY        TESTENV.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
            SELECT CSV-FILE ASSIGN TO "data/SPECS.csv"
@@ -136,6 +136,18 @@
                USING STELLAR-EVOLUTION(MASS-INDEX(STAR-IDX)),
                      WS-STELLAR-AGE, STAGE(STAR-IDX),
                      LUMINOSITY(STAR-IDX).
+           CALL 'PLACE-ORBITAL-ZONES' USING WS-STAR(STAR-IDX).
+           CALL 'DETERMINE-GG-ARRANGEMENT' USING WS-STAR(STAR-IDX).
+      D    CALL 'EXPLAIN-GG-ARRANGEMENT' USING
+      D                                GG-ARRANGEMENT(STAR-IDX),
+      D                                WS-TMP-STR.
+      D    IF NO-GAS-GIANT(STAR-IDX)
+      D        DISPLAY '1st GG = none generated'
+      D    ELSE
+      D        DISPLAY '1st GG = 'FUNCTION TRIM(WS-TMP-STR)
+      D                ' at 'GG-DISTANCE(STAR-IDX)' AU'
+           END-IF.
+           PERFORM DETERMINE-ORBITS.
       *_________________
       ****[END MAIN]****
            GOBACK.
@@ -355,7 +367,7 @@
       * Determine avg. surface temperature in K.
       *
        DETERMINE-TEMPERATURE.
-      D    DISPLAY '[determine-temperature] ' no ADVANCING
+      D    DISPLAY '[determine-temperature]' NO ADVANCING
            EVALUATE TRUE
                WHEN CLASS-X(STAR-IDX)
       *            Black hole... What -is- their temperature?
@@ -388,7 +400,7 @@
            CALL 'ALTER-VALUE-BY-UPTO'  USING
                                        K100, WS-TMP-NUM1, WS-TMP-NUM2
            COMPUTE TEMPERATURE(STAR-IDX) ROUNDED = WS-TMP-NUM2
-      D    DISPLAY '  K = 'TEMPERATURE(STAR-IDX)'K'
+      D    DISPLAY ' K = 'TEMPERATURE(STAR-IDX)'K'
            EXIT PARAGRAPH.
 
       *********************************
@@ -415,4 +427,20 @@
                            (155000.0 * WS-TMP-NUM0) /
                            (TEMPERATURE(STAR-IDX) ** 2)
            END-EVALUATE
+           EXIT PARAGRAPH.
+
+      *********************************
+      * Determine orbits (after 1st GG, if any, has been determined).
+      *
+       DETERMINE-ORBITS.
+           IF NO-GAS-GIANT(STAR-IDX) THEN
+               COMPUTE WS-TMP-NUM1 =   OZ-OUTER-LIMIT IN
+                                       ORBITAL-ZONES IN
+                                       WS-STAR(STAR-IDX)
+               CALL '1D6' USING D6
+               COMPUTE WS-TMP-NUM0 = ((0.05 * D6) + 1) / WS-TMP-NUM1
+           ELSE
+               COMPUTE WS-TMP-NUM0 = GG-DISTANCE(STAR-IDX)
+           END-IF
+           DISPLAY ' orbiz @ 'WS-TMP-NUM0
            EXIT PARAGRAPH.

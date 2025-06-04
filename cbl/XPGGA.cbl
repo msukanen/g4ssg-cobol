@@ -1,6 +1,7 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. EXPLAIN-GAS-GIANT-ARRANGEMENT.
-       AUTHOR.     Markku Sukanen.
+       PROGRAM-ID.   EXPLAIN-GG-ARRANGEMENT.
+       AUTHOR.       Markku Sukanen.
+       DATE-WRITTEN. June 3, 2025
       ******************************************************************
       *
       * Explain/print GGA in more or less human readable form.
