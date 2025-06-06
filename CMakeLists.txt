@@ -5,13 +5,14 @@ enable_testing()
 
 set(CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin")
 
+set(CPY_DIR cbl/cpy)
 set(COBOL_COMPILER cobc)
-set(COBOL_FLAGS -x -Icbl/cpy)
+set(COBOL_FLAGS -x -I${CPY_DIR})
 set(COBOL_DEBUG )
 
-set(CPY_DIR cbl/cpy)
 set(CPY_DEPS ${CPY_DIR}/*.cpy)
 set(STAR_CPY_DEPS ${CPY_DIR}/STAR*.cpy ${CPY_DIR}/ORBZONE.cpy ${CPY_DIR}/GGA.cpy)
+set(ELEM_CPY_DEPS ${CPY_DIR}/ETYPE.cpy)
 
 #
 # Main App.
@@ -20,6 +21,7 @@ set(MAIN_SOURCE WRAPPER.cbl
     cbl/MAIN.cbl
     cbl/rng/*.cbl
     cbl/D*.cbl
+    cbl/G*.cbl
     cbl/O*.cbl
     cbl/P*.cbl
     cbl/S*.cbl
@@ -146,3 +148,35 @@ add_custom_command(
 )
 add_custom_target(build_${TEST_STRFMT_EXE} ALL DEPENDS ${TEST_STRFMT_PATH})
 add_test(NAME TestStrFormatting COMMAND ${TEST_STRFMT_PATH})
+
+#
+# OSPC testing.
+#
+set(TEST_OSPC_SRC test/OSPC.cbl cbl/OSPC.cbl cbl/STRFMT5.cbl cbl/rng/?D6.cbl cbl/rng/ALTERVA1.cbl)
+set(TEST_OSPC_EXE tospc)
+set(TEST_OSPC_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_OSPC_EXE})
+add_custom_command(
+    OUTPUT ${TEST_OSPC_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_OSPC_PATH} ${TEST_OSPC_SRC}
+    DEPENDS ${TEST_OSPC_SRC} cbl/cpy/ORBDIR.cpy cbl/cpy/ORBAVAIL.cpy
+    COMMENT "Compiling test: ${TEST_OSPC_EXE}"
+    VERBATIM
+)
+add_custom_target(build_${TEST_OSPC_EXE} ALL DEPENDS ${TEST_OSPC_PATH})
+add_test(NAME TestOSpacing COMMAND ${TEST_OSPC_PATH})
+
+#
+# GELEMENT testing.
+#
+set(TEST_GELEMENT_SRC test/GELEMENT.cbl cbl/GASTBELT.cbl cbl/GGASGNT.cbl cbl/GTERREST.cbl cbl/rng/?D6.cbl)
+set(TEST_GELEMENT_EXE tgelemt)
+set(TEST_GELEMENT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_GELEMENT_EXE})
+add_custom_command(
+    OUTPUT ${TEST_GELEMENT_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_GELEMENT_PATH} ${TEST_GELEMENT_SRC}
+    DEPENDS ${TEST_GELEMENT_SRC} ${ELEM_CPY_DEPS} cbl/cpy/EASTBELT.cpy cbl/cpy/EGG.cpy cbl/cpy/ETERR.cpy
+    COMMENT "Compiling test: ${TEST_GELEMENT_EXE}"
+    VERBATIM
+)
+add_custom_target(build_${TEST_GELEMENT_EXE} ALL DEPENDS ${TEST_GELEMENT_PATH})
+add_test(NAME TestGenAstBelt COMMAND ${TEST_GELEMENT_PATH})

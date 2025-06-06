@@ -41,10 +41,15 @@
        COPY CONST.
       * ... 200 as maximum number of stars is probably overkill ...
        77  MAX-STARS                   PIC 999 VALUE 200.               CONSTANT
+       77  MAX-ORBITS                  PIC 999 VALUE 200.               CONSTANT
       * System generation basics.
        01  WS-IN-CLUSTER-OR-CORE       PIC X VALUE 'N'.
            88  IN-CLUSTER-OR-CORE      VALUE 'Y'.
            88  NOT-IN-CLUSTER-OR-CORE  VALUE 'N'.
+       01  WS-ODIR                     PIC X.
+           COPY ORBDIR.
+       01  WS-DST-AVAILABLE            PIC X VALUE 'Y'.
+           COPY ORBAVAIL.
       *********************************
       * Stellar CSV related:
        77  MAX-EVO                     PIC 99 VALUE 34.                 CONSTANT
@@ -71,6 +76,13 @@
            COPY STAR.
            COPY ORBSEPV.
            COPY ORBZONE.
+           05  NUM-OF-ORBITS           USAGE COMP-1.
+       01  WS-ORBIT                    USAGE COMP-2.
+       01  WS-NUM-ORBITS               USAGE COMP-1 VALUE 0.
+       01  WS-ORBITS OCCURS 0 TO 40000 TIMES
+                     DEPENDING ON WS-NUM-ORBITS.
+           05  O-DISTANCE              PIC 9(5)V9(5) USAGE COMP-3.
+           05  O-ELEMENT-PTR           USAGE IS POINTER.
 
        LINKAGE SECTION.
        01  LK-PARM.
@@ -441,6 +453,23 @@
                COMPUTE WS-TMP-NUM0 = ((0.05 * D6) + 1) / WS-TMP-NUM1
            ELSE
                COMPUTE WS-TMP-NUM0 = GG-DISTANCE(STAR-IDX)
+      D        DISPLAY ' GG-centric' NO ADVANCING
            END-IF
-           DISPLAY ' orbiz @ 'WS-TMP-NUM0
+      D    DISPLAY ' orbiz @ 'WS-TMP-NUM0
+           SET DST-AVAILABLE TO TRUE
+           SET ODIR-INWARD TO TRUE
+           MOVE WS-TMP-NUM0 TO WS-TMP-NUM1
+      *    Spin more orbits as long as we can …
+           PERFORM UNTIL ODIR-OUTWARD AND DST-NOT-AVAILABLE
+               CALL 'DETERMINE-ORBIT-SPACING' USING
+                                       WS-ODIR, ORBITAL-ZONES(STAR-IDX),
+                                       WS-TMP-NUM0, WS-DST-AVAILABLE,
+                                       WS-ORBIT
+               IF ODIR-INWARD AND DST-NOT-AVAILABLE THEN
+                   SET ODIR-OUTWARD TO TRUE
+                   SET DST-AVAILABLE TO TRUE
+                   MOVE WS-TMP-NUM1 TO WS-TMP-NUM0
+               END-IF
+           END-PERFORM
+
            EXIT PARAGRAPH.

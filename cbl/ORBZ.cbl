@@ -1,6 +1,7 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. PLACE-ORBITAL-ZONES.
-       AUTHOR.     Markku Sukanen.
+       PROGRAM-ID.   PLACE-ORBITAL-ZONES.
+       AUTHOR.       Markku Sukanen.
+       DATE-WRITTEN. June 1, 2025
       ******************************************************************
       *
       * Locate and place a star's orbital zones/limits.
