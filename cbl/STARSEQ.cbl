@@ -24,24 +24,23 @@
            COPY STARDATA.
 
        PROCEDURE DIVISION USING LK-SYSTEM-AGE, LK-EVO, LK-STAR.
-           IF MASS OF LK-STAR > 2.05001 THEN PERFORM DET-M-STAGE
+           IF MASS OF LK-STAR > MASSIVE-STAR-THRESHOLD THEN
+                PERFORM DET-M-STAGE
            ELSE PERFORM DET-N-STAGE END-IF.
            GOBACK.
 
        DET-N-STAGE.
-           IF SPAN-M EQUAL TO NOT-APPLICABLE THEN SET CLASS-V TO TRUE
+           IF SPAN-M = NOT-APPLICABLE THEN SET CLASS-V TO TRUE
            ELSE
                COMPUTE WS-MS = SPAN-M + SPAN-S
                COMPUTE WS-MSG = SPAN-M + SPAN-S + SPAN-G
                EVALUATE TRUE
-               WHEN SPAN-S EQUAL TO NOT-APPLICABLE
-                    AND LK-SYSTEM-AGE > SPAN-M
+               WHEN (SPAN-S = NOT-APPLICABLE AND BYR > SPAN-M)
+                 OR BYR > WS-MSG
                    SET WHITE-DWARF TO TRUE
-               WHEN LK-SYSTEM-AGE > WS-MSG
-                   SET WHITE-DWARF TO TRUE
-               WHEN LK-SYSTEM-AGE > WS-MS
+               WHEN BYR > WS-MS
                    SET CLASS-III TO TRUE
-               WHEN LK-SYSTEM-AGE > SPAN-M
+               WHEN BYR > SPAN-M
                    SET CLASS-IV TO TRUE
                WHEN OTHER
                    SET CLASS-V TO TRUE

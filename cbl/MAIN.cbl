@@ -138,19 +138,21 @@
            
            CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX)
                                        WS-EVO-REC
-                                       STAR(STAR-IDX).
+                                       STAR(STAR-IDX)
       D    DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
       D    DISPLAY ' ⇢ massive 'MASS-STAGE(STAR-IDX)
            
            CALL 'DETERMINE-LIFE-STAGE' USING WS-SYSTEM-AGE
                      STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
-                                       STAR(STAR-IDX).
+                                       STAR(STAR-IDX)
            DISPLAY 'Stage 'STAGE(STAR-IDX)
 
-           CALL 'DETERMINE-LUMINOSITY' USING
+           CALL 'DETERMINE-LUMINOSITY' USING WS-SYSTEM-AGE
                      STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
-                                       STAR(STAR-IDX).
-       BYE-BYE.
+                                       STAR(STAR-IDX)
+           DISPLAY 'Luminosity 'LUMINOSITY(STAR-IDX)
+       
+       .BYE-BYE.
            CLOSE CSV-FILE
       *    /`-----------´\
       *   [ 0_0 END MAIN  ]

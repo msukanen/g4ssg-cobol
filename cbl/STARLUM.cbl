@@ -14,12 +14,13 @@
        01  WS-NUM                      USAGE COMP-2.
 
        LINKAGE SECTION.
+       01  LK-AGE                      USAGE COMP-2.
        01  LK-EVO.
            COPY STLREVO.
        01  LK-STAR.
            COPY STARDATA.
 
-       PROCEDURE DIVISION USING LK-EVO, LK-STAR.
+       PROCEDURE DIVISION USING LK-AGE, LK-EVO, LK-STAR.
            EVALUATE TRUE
                WHEN WHITE-DWARF OR NEUTRON-STAR
       *            WD & N have about negligible luminosity, rarely higher
@@ -30,8 +31,29 @@
       *            Black holes by default have no luminosity at all …
                    MOVE 0.0 TO LUMINOSITY
                WHEN CLASS-V OR CLASS-VI
-                   IF LUMINOSITY-MAX = NOT-APPLICABLE THEN
+                   IF LUMINOSITY-MAX = NOT-APPLICABLE
+                      OR MASSIVE-STAR THEN
                        MOVE LUMINOSITY-MIN TO LUMINOSITY
+                   ELSE
+                       COMPUTE LUMINOSITY =
+                               LUMINOSITY-MIN + (
+                                (LK-AGE / SPAN-M) *
+                                (LUMINOSITY-MAX - LUMINOSITY-MIN)
+                                )
+                   END-IF
+               WHEN CLASS-IV
+                   IF LUMINOSITY-MAX = NOT-APPLICABLE
+                      OR MASSIVE-STAR THEN
+                       MOVE LUMINOSITY-MIN TO LUMINOSITY
+                   ELSE
+                       MOVE LUMINOSITY-MAX TO LUMINOSITY
+                   END-IF
+               WHEN OTHER
+                   IF LUMINOSITY-MAX = NOT-APPLICABLE
+                      OR MASSIVE-STAR THEN
+                       COMPUTE LUMINOSITY = 25.0 * LUMINOSITY-MIN
+                   ELSE
+                       COMPUTE LUMINOSITY = 25.0 * LUMINOSITY-MAX
                    END-IF
            END-EVALUATE
            GOBACK.
