@@ -6,3 +6,5 @@
                10  MASS                USAGE COMP-2.
                10  LUMINOSITY          USAGE COMP-2.
                10  TEMPERATURE         USAGE COMP-2.
+               10  STAGE               PIC XXX.
+                   COPY STARSTG.

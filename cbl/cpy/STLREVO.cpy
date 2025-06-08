@@ -1,4 +1,7 @@
-      *        Stellar generation data (from e.g. a parsed CSV).
+      ******************************************************************
+      * Stellar generation data (from e.g. a parsed CSV) for not very
+      * massive stars.
+      *
                10  MASS                USAGE COMP-2.
                10  APPROX-TYPE         PIC X(3).
                10  AVG-TEMP            USAGE COMP-1.

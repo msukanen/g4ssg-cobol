@@ -80,10 +80,7 @@
                                        DEPENDING ON EVO-COUNT OF
                                                  WS-STELLAR-EVO-M-REC
                                        INDEXED BY EVO-M-IDX.
-               10  MASS                USAGE COMP-2.
-               10  LUMINOSITY          USAGE COMP-2.
-               10  AVG-TEMP            USAGE COMP-2.
-               10  SPAN-S              USAGE COMP-2.
+               COPY STLREVOM.
       *********************************
       * Stellar data:
       *
@@ -104,9 +101,9 @@
            05  LK-P-DATA               PIC X(100).
 
        PROCEDURE DIVISION USING LK-PARM.
-      *    ____________
-      ****[    MAIN    ]****
-      *   ^~~~~~~~~~~~~^
+      *    /`--------´\
+      *   [    MAIN    ]
+      *    ^~~~~~~~~~~^
       *    Parse "command line":
            COMPUTE PARM-LEN = FUNCTION LENGTH(FUNCTION TRIM(LK-P-DATA)).
            PERFORM UNTIL PARM-INDEX > PARM-LEN
@@ -149,19 +146,25 @@
 
            SET STAR-IDX TO 1.
            ADD 1 TO STAR-COUNT
+           
            CALL 'GEN-SRCH-MASS' USING MASS OF STAR(STAR-IDX)
            DISPLAY 'Star mass 'MASS OF STAR(STAR-IDX)
+           
            CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX),
                                        WS-STELLAR-EVO-REC,
                                        STAR(STAR-IDX)
            DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
+           
            CALL 'DETERMINE-LIFE-STAGE' USING WS-SYSTEM-AGE,
+               STELLAR-EVO OF WS-STELLAR-EVO-REC(MASS-INDEX(STAR-IDX))
                                        STAR(STAR-IDX)
+           DISPLAY 'Stage 'stage(star-idx)
            .
        BYE-BYE.
            CLOSE CSV-FILE
-      *_________________
-      ****[END MAIN]****
+      *    /`-----------´\
+      *   [ 0_0 END MAIN  ]
+      *    ^*************^
            GOBACK.
 
       *********************************
@@ -186,7 +189,7 @@
            END-EVALUATE
            EXIT PARAGRAPH.
 
-       PARSE-CSV-LINE-M.
+       PARSE-CSV-LINE-M.                                                p.126
       *    Parse massive star stuff.
            UNSTRING CSV-LINE DELIMITED BY ',' INTO
                    WS-TMP-STR
@@ -203,7 +206,7 @@
            COMPUTE MASS OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
                FUNCTION NUMVAL(
                 FUNCTION TRIM( WS-CSV-MASS OF WS-EVO-CSV-MASSIVE ))
-           COMPUTE LUMINOSITY OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
+           COMPUTE LUMINOSITY-MIN OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
                FUNCTION NUMVAL(
                 FUNCTION TRIM( WS-CSV-LUM ))
            COMPUTE AVG-TEMP OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
@@ -215,7 +218,7 @@
 
            EXIT PARAGRAPH.
 
-       PARSE-CSV-LINE-N.
+       PARSE-CSV-LINE-N.                                                p.103
       *    Parse normie star stuff.
            UNSTRING CSV-LINE DELIMITED BY ',' INTO
                    WS-CSV-MASS OF WS-EVO-CSV
@@ -237,21 +240,27 @@
                FUNCTION NUMVAL(
                 FUNCTION TRIM(
                    WS-CSV-MASS OF WS-EVO-CSV ))
+           
            MOVE WS-CSV-APPROX-TYPE TO APPROX-TYPE(EVO-IDX)
+           
            COMPUTE AVG-TEMP OF WS-STELLAR-EVO-REC(EVO-IDX) =
                FUNCTION NUMVAL(
                 FUNCTION TRIM(
                    WS-CSV-AVG-TEMP OF WS-EVO-CSV ))
-           COMPUTE LUMINOSITY-MIN(EVO-IDX) =
-                   FUNCTION NUMVAL( FUNCTION TRIM(WS-CSV-L-MIN) )
+           
+           COMPUTE LUMINOSITY-MIN OF WS-STELLAR-EVO-REC(EVO-IDX) =
+               FUNCTION NUMVAL( FUNCTION TRIM(WS-CSV-L-MIN) )
+           
            IF  FUNCTION TRIM(WS-CSV-L-MAX) = '-' THEN
                MOVE NOT-APPLICABLE TO LUMINOSITY-MAX(EVO-IDX)
            ELSE COMPUTE LUMINOSITY-MAX(EVO-IDX) =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-L-MAX)).
+           
            IF  FUNCTION TRIM(WS-CSV-M-SPAN) = '-' THEN
                MOVE NOT-APPLICABLE TO SPAN-M(EVO-IDX)
            ELSE COMPUTE SPAN-M(EVO-IDX) =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-M-SPAN)).
+           
            IF  FUNCTION TRIM(WS-CSV-S-SPAN OF WS-EVO-CSV) = '-' THEN
                MOVE NOT-APPLICABLE
                     TO SPAN-S OF WS-STELLAR-EVO-REC(EVO-IDX)
@@ -259,8 +268,10 @@
                    FUNCTION NUMVAL(
                     FUNCTION TRIM(
                         WS-CSV-S-SPAN OF WS-EVO-CSV )).
+           
            IF  FUNCTION TRIM(WS-CSV-G-SPAN) = '-' THEN
                MOVE NOT-APPLICABLE TO SPAN-G(EVO-IDX)
            ELSE COMPUTE SPAN-G(EVO-IDX) =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-G-SPAN)).
+           
            EXIT PARAGRAPH.
