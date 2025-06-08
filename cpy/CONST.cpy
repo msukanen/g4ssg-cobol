@@ -3,6 +3,7 @@
       * Various global "constants".
       *
        77  NOT-APPLICABLE              USAGE COMP-2 VALUE -1.           CONSTANT
+       77  MASSIVE-STAR-THRESHOLD      USAGE COMP-2 VALUE 2.05001.      CONSTANT
       *********************************
       * For e.g. ALTER-VALUE-#
       * 

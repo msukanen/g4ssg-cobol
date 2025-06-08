@@ -133,19 +133,23 @@
            SET STAR-IDX TO 1.
            ADD 1 TO STAR-COUNT
            
-           CALL 'GEN-SRCH-MASS' USING MASS OF STAR(STAR-IDX)
+           CALL 'GEN-SRCH-MASS' USING  STAR(STAR-IDX)
            DISPLAY 'Star mass 'MASS OF STAR(STAR-IDX)
            
-           CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX),
-                                       WS-EVO-REC,
-                                       STAR(STAR-IDX)
-           DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
+           CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX)
+                                       WS-EVO-REC
+                                       STAR(STAR-IDX).
+      D    DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
+      D    DISPLAY ' ⇢ massive 'MASS-STAGE(STAR-IDX)
            
-           CALL 'DETERMINE-LIFE-STAGE' USING WS-SYSTEM-AGE,
-               STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
-                                       STAR(STAR-IDX)
-           DISPLAY 'Stage 'stage(star-idx)
-           .
+           CALL 'DETERMINE-LIFE-STAGE' USING WS-SYSTEM-AGE
+                     STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
+                                       STAR(STAR-IDX).
+           DISPLAY 'Stage 'STAGE(STAR-IDX)
+
+           CALL 'DETERMINE-LUMINOSITY' USING
+                     STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
+                                       STAR(STAR-IDX).
        BYE-BYE.
            CLOSE CSV-FILE
       *    /`-----------´\

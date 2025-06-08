@@ -5,7 +5,7 @@ enable_testing()
 
 set(CMAKE_CURRENT_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/bin")
 
-set(CPY_DIR cbl/cpy)
+set(CPY_DIR cpy)
 set(CPY_DEPS ${CPY_DIR}/*.cpy)
 set(RNG_DEPS cbl/rng/?D6.cbl)
 
