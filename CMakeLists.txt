@@ -19,7 +19,10 @@ set(COBOL_DEBUG )
 set(MAIN_SOURCE WRAPPER.cbl
     cbl/MAIN.cbl
     ${RNG_DEPS}
+    cbl/RNDSMASS.cbl
     cbl/STRFMT*.cbl
+    cbl/STLR*.cbl
+    cbl/STAR*.cbl
 )
 set(MAIN_EXE g4ssg)
 set(MAIN_PATH ${CMAKE_CURRENT_BINARY_DIR}/${MAIN_EXE})
@@ -62,3 +65,19 @@ add_custom_command(
 )
 add_custom_target(build_${TEST_STLRAGE_EXE} ALL DEPENDS ${TEST_STLRAGE_PATH})
 add_test(NAME Test_stellar_age_and_population COMMAND ${TEST_STLRAGE_PATH})
+
+#
+# Stellar mass index and such …
+#
+set(TEST_STARIDX_SRC test/STARIDX.cbl cbl/STARIDX.cbl cbl/RNDSMASS.cbl ${RNG_DEPS})
+set(TEST_STARIDX_EXE tstaridx)
+set(TEST_STARIDX_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_STARIDX_EXE})
+add_custom_command(
+    OUTPUT ${TEST_STARIDX_PATH}
+    COMMAND ${COBOL_COMPILER} ${COBOL_FLAGS} ${COBOL_DEBUG} -o ${TEST_STARIDX_PATH} ${TEST_STARIDX_SRC}
+    DEPENDS ${TEST_STARIDX_SRC}
+    COMMENT "Compiling test: ${TEST_STARIDX_EXE}"
+    VERBATIM
+)
+add_custom_target(build_${TEST_STARIDX_EXE} ALL DEPENDS ${TEST_STARIDX_PATH})
+add_test(NAME Test_stellar_mass_index COMMAND ${TEST_STARIDX_PATH})

@@ -1,10 +1,11 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID.   GEN-STELLAR-AGE.
+       PROGRAM-ID.   GEN-SYSTEM-AGE.
        AUTHOR.       Markku Sukanen.
        DATE-WRITTEN. June 8, 2025
       ******************************************************************
       *
-      * Generate random stellar age and population.
+      * Generate random star system age and (typical) population of the
+      * star(s) in it.
       *
       ******************************************************************
        DATA DIVISION.

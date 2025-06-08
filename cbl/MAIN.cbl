@@ -49,14 +49,10 @@
        77  MAX-ORBITS                  PIC 999 VALUE 200.               CONSTANT
       * System generation basics.
        01  WS-IN-CLUSTER-OR-CORE       PIC X VALUE 'N'.
-           88  IN-CLUSTER-OR-CORE      VALUE 'Y'.
-           88  NOT-IN-CLUSTER-OR-CORE  VALUE 'N'.
+           88  IN-CLUSTER-OR-CORE      VALUE 'Y'
+                                       WHEN SET TO FALSE IS 'N'.
       *********************************
       * Stellar CSV related:
-       77  MAX-EVO                     PIC 99 VALUE 34.                 CONSTANT
-       77  MAX-MASSIVE-EVO             PIC 99 VALUE 10.                 CONSTANT
-       01  WS-EVO-COUNT                USAGE COMP-1 VALUE 0.
-       01  WS-EVO-M-COUNT              USAGE COMP-1 VALUE 0.
        01  WS-EVO-CSV.
            05  WS-CSV-MASS             PIC X(10).
            05  WS-CSV-APPROX-TYPE      PIC X(10).
@@ -71,26 +67,36 @@
            05  WS-CSV-LUM              PIC X(12).
            05  WS-CSV-AVG-TEMP         PIC X(10).
            05  WS-CSV-S-SPAN           PIC X(12).
-       01  STELLAR-EVO
-                   OCCURS 0 TO 100 TIMES                                ^MAXIMUM
-                   DEPENDING ON WS-EVO-COUNT
-                   INDEXED BY EVO-IDX.
-           05  MASS                    USAGE COMP-2.
-           05  APPROX-TYPE             PIC X(3).
-           05  AVG-TEMP                USAGE COMP-1.
-           05  LUMINOSITY-MIN          USAGE COMP-2.
-           05  LUMINOSITY-MAX          USAGE COMP-2.
-           05  SPAN-M                  USAGE COMP-2.
-           05  SPAN-S                  USAGE COMP-2.
-           05  SPAN-G                  USAGE COMP-2.
-       01  STELLAR-EVO-MASSIVE
-                   OCCURS 0 TO 100 TIMES                                ^MAXIMUM
-                   DEPENDING ON WS-EVO-M-COUNT
-                   INDEXED BY EVO-MASSIVE-IDX.
-           05  MASS                    USAGE COMP-2.
-           05  LUMINOSITY              USAGE COMP-2.
-           05  AVG-TEMP                USAGE COMP-2.
-           05  SPAN-S                  USAGE COMP-2.
+       01  WS-STELLAR-EVO-REC.
+           05  EVO-COUNT               PIC 999 COMP-5 VALUE 0.
+           05  STELLAR-EVO             OCCURS 0 TO 100 TIMES            ^MAXIMUM
+                                       DEPENDING ON EVO-COUNT OF
+                                                 WS-STELLAR-EVO-REC
+                                       INDEXED BY EVO-IDX.
+               COPY STLREVO.                                            STLREVO
+       01  WS-STELLAR-EVO-M-REC.
+           05  EVO-COUNT               PIC 999 USAGE COMP-5 VALUE 0.
+           05  STELLAR-EVO             OCCURS 0 TO 100 TIMES            ^MAXIMUM
+                                       DEPENDING ON EVO-COUNT OF
+                                                 WS-STELLAR-EVO-M-REC
+                                       INDEXED BY EVO-M-IDX.
+               10  MASS                USAGE COMP-2.
+               10  LUMINOSITY          USAGE COMP-2.
+               10  AVG-TEMP            USAGE COMP-2.
+               10  SPAN-S              USAGE COMP-2.
+      *********************************
+      * Stellar data:
+      *
+       01  WS-SYSTEM-AGE.
+           05  BYR                     USAGE COMP-2.
+           05  POPULATION              PIC XX.
+               COPY STLRPOP.
+       01  WS-STAR-SYSTEM.
+           05  STAR-COUNT              PIC 999 USAGE COMP-5 VALUE 0.
+           05  STAR                    OCCURS 0 TO 200 TIMES
+                                       DEPENDING ON STAR-COUNT
+                                       INDEXED BY STAR-IDX.
+               COPY STARDATA.
 
        LINKAGE SECTION.
        01  LK-PARM.
@@ -122,14 +128,12 @@
       *    Parse our stellar CSV...:
            OPEN INPUT CSV-FILE
            SET EVO-IDX TO 0
-           SET EVO-MASSIVE-IDX TO 0
+           SET EVO-M-IDX TO 0
            DISPLAY 'Processing CSV: ' NO ADVANCING
            PERFORM UNTIL EXIT
                READ CSV-FILE INTO CSV-LINE
-                   AT END
-                       EXIT PERFORM
-                   NOT AT END
-                       PERFORM PARSE-CSV-LINE
+                   AT END              EXIT PERFORM
+                   NOT AT END          PERFORM PARSE-CSV-LINE
                END-READ
 
                IF WAS-CSV-ERROR THEN
@@ -140,6 +144,20 @@
            END-PERFORM
            DISPLAY X"0a"'           CSV: OK'.
        
+           CALL 'GEN-SYSTEM-AGE' USING WS-SYSTEM-AGE
+           DISPLAY 'System age 'BYR' BYr.'
+
+           SET STAR-IDX TO 1.
+           ADD 1 TO STAR-COUNT
+           CALL 'GEN-SRCH-MASS' USING MASS OF STAR(STAR-IDX)
+           DISPLAY 'Star mass 'MASS OF STAR(STAR-IDX)
+           CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX),
+                                       WS-STELLAR-EVO-REC,
+                                       STAR(STAR-IDX)
+           DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
+           CALL 'DETERMINE-LIFE-STAGE' USING WS-SYSTEM-AGE,
+                                       STAR(STAR-IDX)
+           .
        BYE-BYE.
            CLOSE CSV-FILE
       *_________________
@@ -147,8 +165,8 @@
            GOBACK.
 
       *********************************
-      * Parse a line of CSV.
-      *
+      * Parse a line of CSV.                                            p.103
+      *                                                                 p.126
        PARSE-CSV-LINE.
            SET WAS-CSV-COMMENT TO FALSE
       *    Lines beginning with '#' are treated as comments and thus    NOTE
@@ -179,7 +197,22 @@
                    ON OVERFLOW
                        SET WAS-CSV-ERROR TO TRUE
                        EXIT PARAGRAPH.
-           ADD 1 TO WS-EVO-M-COUNT
+           SET EVO-M-IDX UP BY 1
+           ADD 1 TO EVO-COUNT OF WS-STELLAR-EVO-M-REC
+
+           COMPUTE MASS OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
+               FUNCTION NUMVAL(
+                FUNCTION TRIM( WS-CSV-MASS OF WS-EVO-CSV-MASSIVE ))
+           COMPUTE LUMINOSITY OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
+               FUNCTION NUMVAL(
+                FUNCTION TRIM( WS-CSV-LUM ))
+           COMPUTE AVG-TEMP OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
+               FUNCTION NUMVAL(
+                FUNCTION TRIM( WS-CSV-AVG-TEMP OF WS-EVO-CSV-MASSIVE ))
+           COMPUTE SPAN-S OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
+               FUNCTION NUMVAL(
+                FUNCTION TRIM( WS-CSV-S-SPAN OF WS-EVO-CSV-MASSIVE ))
+
            EXIT PARAGRAPH.
 
        PARSE-CSV-LINE-N.
@@ -196,5 +229,38 @@
                    ON OVERFLOW
                        SET WAS-CSV-ERROR TO TRUE
                        EXIT PARAGRAPH.
-           ADD 1 TO WS-EVO-COUNT
+           
+           SET EVO-IDX UP BY 1
+           ADD 1 TO EVO-COUNT OF WS-STELLAR-EVO-REC
+
+           COMPUTE MASS OF WS-STELLAR-EVO-REC(EVO-IDX) =
+               FUNCTION NUMVAL(
+                FUNCTION TRIM(
+                   WS-CSV-MASS OF WS-EVO-CSV ))
+           MOVE WS-CSV-APPROX-TYPE TO APPROX-TYPE(EVO-IDX)
+           COMPUTE AVG-TEMP OF WS-STELLAR-EVO-REC(EVO-IDX) =
+               FUNCTION NUMVAL(
+                FUNCTION TRIM(
+                   WS-CSV-AVG-TEMP OF WS-EVO-CSV ))
+           COMPUTE LUMINOSITY-MIN(EVO-IDX) =
+                   FUNCTION NUMVAL( FUNCTION TRIM(WS-CSV-L-MIN) )
+           IF  FUNCTION TRIM(WS-CSV-L-MAX) = '-' THEN
+               MOVE NOT-APPLICABLE TO LUMINOSITY-MAX(EVO-IDX)
+           ELSE COMPUTE LUMINOSITY-MAX(EVO-IDX) =
+                   FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-L-MAX)).
+           IF  FUNCTION TRIM(WS-CSV-M-SPAN) = '-' THEN
+               MOVE NOT-APPLICABLE TO SPAN-M(EVO-IDX)
+           ELSE COMPUTE SPAN-M(EVO-IDX) =
+                   FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-M-SPAN)).
+           IF  FUNCTION TRIM(WS-CSV-S-SPAN OF WS-EVO-CSV) = '-' THEN
+               MOVE NOT-APPLICABLE
+                    TO SPAN-S OF WS-STELLAR-EVO-REC(EVO-IDX)
+           ELSE COMPUTE SPAN-S OF WS-STELLAR-EVO-REC(EVO-IDX) =
+                   FUNCTION NUMVAL(
+                    FUNCTION TRIM(
+                        WS-CSV-S-SPAN OF WS-EVO-CSV )).
+           IF  FUNCTION TRIM(WS-CSV-G-SPAN) = '-' THEN
+               MOVE NOT-APPLICABLE TO SPAN-G(EVO-IDX)
+           ELSE COMPUTE SPAN-G(EVO-IDX) =
+                   FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-G-SPAN)).
            EXIT PARAGRAPH.
