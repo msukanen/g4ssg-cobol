@@ -22,7 +22,7 @@
        WORKING-STORAGE SECTION.
       *********************************
       * Random number generation:
-       COPY RNG.
+       COPY RNG.                                                        D6 etc.
        01  WS-TMP-STR                  PIC X(100).
        01  WS-TMP-NUM0                 USAGE COMP-2.
        01  WS-TMP-NUM1                 USAGE COMP-2.
@@ -36,8 +36,13 @@
       *********************************
       * Misc. variables/constants.
        01  WS-WAS-CSV-COMMENT          PIC X VALUE 'N'.
-           88  WAS-CSV-COMMENT         VALUE 'Y'.
-           88  WAS-NOT-CSV-COMMENT     VALUE 'N'.
+           88  WAS-CSV-COMMENT         VALUE 'Y'
+                                       WHEN SET TO FALSE IS 'N'.
+      *    88  WAS-NOT-CSV-COMMENT     VALUE 'N'.
+       01  WS-WAS-CSV-ERROR            PIC X VALUE 'N'.
+           88  WAS-CSV-ERROR           VALUE 'Y'
+                                       WHEN SET TO FALSE IS 'N'.
+      *    88  NO-CSV-ERROR            VALUE 'N'.
        COPY CONST.
       * ... 200 as maximum number of stars is probably overkill ...
        77  MAX-STARS                   PIC 999 VALUE 200.               CONSTANT
@@ -46,13 +51,12 @@
        01  WS-IN-CLUSTER-OR-CORE       PIC X VALUE 'N'.
            88  IN-CLUSTER-OR-CORE      VALUE 'Y'.
            88  NOT-IN-CLUSTER-OR-CORE  VALUE 'N'.
-       01  WS-ODIR                     PIC X.
-           COPY ORBDIR.
-       01  WS-DST-AVAILABLE            PIC X VALUE 'Y'.
-           COPY ORBAVAIL.
       *********************************
       * Stellar CSV related:
        77  MAX-EVO                     PIC 99 VALUE 34.                 CONSTANT
+       77  MAX-MASSIVE-EVO             PIC 99 VALUE 10.                 CONSTANT
+       01  WS-EVO-COUNT                USAGE COMP-1 VALUE 0.
+       01  WS-EVO-M-COUNT              USAGE COMP-1 VALUE 0.
        01  WS-EVO-CSV.
            05  WS-CSV-MASS             PIC X(10).
            05  WS-CSV-APPROX-TYPE      PIC X(10).
@@ -62,27 +66,31 @@
            05  WS-CSV-M-SPAN           PIC X(10).
            05  WS-CSV-S-SPAN           PIC X(10).
            05  WS-CSV-G-SPAN           PIC X(10).
-       01  STELLAR-EVOLUTION
-                   OCCURS 34 TIMES                                      ^MAXIMUM
+       01  WS-EVO-CSV-MASSIVE.
+           05  WS-CSV-MASS             PIC X(10).
+           05  WS-CSV-LUM              PIC X(12).
+           05  WS-CSV-AVG-TEMP         PIC X(10).
+           05  WS-CSV-S-SPAN           PIC X(12).
+       01  STELLAR-EVO
+                   OCCURS 0 TO 100 TIMES                                ^MAXIMUM
+                   DEPENDING ON WS-EVO-COUNT
                    INDEXED BY EVO-IDX.
-           COPY STLREVO.
-       01  WS-STELLAR-POPULATION       PIC XX.
-           COPY STLRPOP.
-       01  WS-STELLAR-AGE              PIC 99V99.
-       01  WS-NUM-STARS                PIC 999 USAGE COMP-3 VALUE 0.
-       01  WS-STAR OCCURS 0 TO 200 TIMES                                ^MAXIMUM
-                   DEPENDING ON WS-NUM-STARS
-                   INDEXED BY STAR-IDX.
-           COPY STAR.
-           COPY ORBSEPV.
-           COPY ORBZONE.
-           05  NUM-OF-ORBITS           USAGE COMP-1.
-       01  WS-ORBIT                    USAGE COMP-2.
-       01  WS-NUM-ORBITS               USAGE COMP-1 VALUE 0.
-       01  WS-ORBITS OCCURS 0 TO 40000 TIMES
-                     DEPENDING ON WS-NUM-ORBITS.
-           05  O-DISTANCE              PIC 9(5)V9(5) USAGE COMP-3.
-           05  O-ELEMENT-PTR           USAGE IS POINTER.
+           05  MASS                    USAGE COMP-2.
+           05  APPROX-TYPE             PIC X(3).
+           05  AVG-TEMP                USAGE COMP-1.
+           05  LUMINOSITY-MIN          USAGE COMP-2.
+           05  LUMINOSITY-MAX          USAGE COMP-2.
+           05  SPAN-M                  USAGE COMP-2.
+           05  SPAN-S                  USAGE COMP-2.
+           05  SPAN-G                  USAGE COMP-2.
+       01  STELLAR-EVO-MASSIVE
+                   OCCURS 0 TO 100 TIMES                                ^MAXIMUM
+                   DEPENDING ON WS-EVO-M-COUNT
+                   INDEXED BY EVO-MASSIVE-IDX.
+           05  MASS                    USAGE COMP-2.
+           05  LUMINOSITY              USAGE COMP-2.
+           05  AVG-TEMP                USAGE COMP-2.
+           05  SPAN-S                  USAGE COMP-2.
 
        LINKAGE SECTION.
        01  LK-PARM.
@@ -90,10 +98,10 @@
            05  LK-P-DATA               PIC X(100).
 
        PROCEDURE DIVISION USING LK-PARM.
-      *_____________________
+      *    ____________
       ****[    MAIN    ]****
-      *
-      * Parse "command line":
+      *   ^~~~~~~~~~~~~^
+      *    Parse "command line":
            COMPUTE PARM-LEN = FUNCTION LENGTH(FUNCTION TRIM(LK-P-DATA)).
            PERFORM UNTIL PARM-INDEX > PARM-LEN
                INITIALIZE PARSED-FIELD
@@ -111,55 +119,29 @@
                END-IF
            END-PERFORM.
            
-      * Parse our stellar CSV...:
-           OPEN INPUT CSV-FILE.
-           PERFORM VARYING EVO-IDX
-                   FROM MAX-EVO BY -1
-                   UNTIL EVO-IDX IS EQUAL TO 0
+      *    Parse our stellar CSV...:
+           OPEN INPUT CSV-FILE
+           SET EVO-IDX TO 0
+           SET EVO-MASSIVE-IDX TO 0
+           DISPLAY 'Processing CSV: ' NO ADVANCING
+           PERFORM UNTIL EXIT
                READ CSV-FILE INTO CSV-LINE
+                   AT END
+                       EXIT PERFORM
                    NOT AT END
                        PERFORM PARSE-CSV-LINE
                END-READ
-               IF WAS-CSV-COMMENT THEN
-                   SET EVO-IDX UP BY 1
-               END-IF
-           END-PERFORM.
-           CLOSE CSV-FILE.
 
-      *********************************
-      * Generate star system.
-      *********************************
-      D    DISPLAY '_________________________'
-           DISPLAY 'Generating star system...'
-           CALL 'DETERMINE-STELLAR-AGE'
-               USING WS-STELLAR-POPULATION,
-                     WS-STELLAR-AGE.
-           PERFORM DETERMINE-NUM-STARS.
-           
-           SET STAR-IDX TO 1.
-           DISPLAY 'INDEX 'STAR-IDX
-           PERFORM DETERMINE-STELLAR-MASS.
-           CALL 'DETERMINE-SEQUENCE'
-               USING STELLAR-EVOLUTION(MASS-INDEX(STAR-IDX)),
-                     WS-STELLAR-AGE, STAGE(STAR-IDX).
-           PERFORM REFINE-STELLAR-MASS.
-           PERFORM DETERMINE-TEMPERATURE.
-           CALL 'DETERMINE-LUMINOSITY'
-               USING STELLAR-EVOLUTION(MASS-INDEX(STAR-IDX)),
-                     WS-STELLAR-AGE, STAGE(STAR-IDX),
-                     LUMINOSITY(STAR-IDX).
-           CALL 'PLACE-ORBITAL-ZONES' USING WS-STAR(STAR-IDX).
-           CALL 'DETERMINE-GG-ARRANGEMENT' USING WS-STAR(STAR-IDX).
-      D    CALL 'EXPLAIN-GG-ARRANGEMENT' USING
-      D                                GG-ARRANGEMENT(STAR-IDX),
-      D                                WS-TMP-STR.
-      D    IF NO-GAS-GIANT(STAR-IDX)
-      D        DISPLAY '1st GG = none generated'
-      D    ELSE
-      D        DISPLAY '1st GG = 'FUNCTION TRIM(WS-TMP-STR)
-      D                ' at 'GG-DISTANCE(STAR-IDX)' AU'
-           END-IF.
-           PERFORM DETERMINE-ORBITS.
+               IF WAS-CSV-ERROR THEN
+                   DISPLAY X"0a"'           CSV: ERROR'
+                           X"0a"'           with 'CSV-LINE
+                   GO TO BYE-BYE
+               END-IF
+           END-PERFORM
+           DISPLAY X"0a"'           CSV: OK'.
+       
+       BYE-BYE.
+           CLOSE CSV-FILE
       *_________________
       ****[END MAIN]****
            GOBACK.
@@ -167,309 +149,52 @@
       *********************************
       * Parse a line of CSV.
       *
-      * Lines beginning with '#' are treated as comments and thus
-      * they are entirely skipped.
-      *
        PARSE-CSV-LINE.
-           SET WAS-NOT-CSV-COMMENT TO TRUE
-      * We just silently skip all comments, ok?
-           IF CSV-LINE(1:1) = '#' THEN
-               SET WAS-CSV-COMMENT TO TRUE
-               EXIT PARAGRAPH
-           END-IF
-           
-      D    DISPLAY 'EVO-IDX 'EVO-IDX
-
-           UNSTRING CSV-LINE
-                DELIMITED BY ','
-                INTO WS-CSV-MASS
-                     WS-CSV-APPROX-TYPE
-                     WS-CSV-AVG-TEMP
-                     WS-CSV-L-MIN
-                     WS-CSV-L-MAX
-                     WS-CSV-M-SPAN
-                     WS-CSV-S-SPAN
-                     WS-CSV-G-SPAN
-      *****
-      * Validate CSV entries:
-      *
-      *    Mass first:
-           COMPUTE EVO-MASS(EVO-IDX) ROUNDED =                          Mass
-                   FUNCTION NUMVAL(
-                    FUNCTION TRIM(WS-CSV-MASS)
-                   )
-      D    DISPLAY '    Mass 'EVO-MASS(EVO-IDX)' × Sol'
-
-      *    Approx. spectral type and brightness.
-           MOVE FUNCTION TRIM(WS-CSV-APPROX-TYPE)                       Approx.T
-                   TO EVO-APPROX-TYPE(EVO-IDX)
-      D    DISPLAY '   A.Typ 'EVO-APPROX-TYPE(EVO-IDX)
-
-      *    Surface temperature, in K.
-           MOVE FUNCTION TRIM(WS-CSV-AVG-TEMP)                          Avg-K
-                   TO EVO-AVG-TEMP(EVO-IDX)
-      D    DISPLAY '       K 'EVO-AVG-TEMP(EVO-IDX)
-           
-      *    Luminance minimum.
-           COMPUTE EVO-L-MIN(EVO-IDX) ROUNDED =                         L-Min
-                   FUNCTION NUMVAL(
-                    FUNCTION TRIM(WS-CSV-L-MIN)
-                   )
-      D    DISPLAY '   L-Min 'EVO-L-MIN(EVO-IDX)
-
-      *    Luminance maximum.
-      *        A '-' as value means the star is too dim to begin with
-      *        for a maximum value to make much sense, and thus it is
-      *        marked as NOT-AVAILABLE.
-           IF FUNCTION TRIM(WS-CSV-L-MAX) = '-' THEN                    L-Max
-               MOVE NOT-AVAILABLE TO EVO-L-MAX(EVO-IDX)
-           ELSE COMPUTE EVO-L-MAX(EVO-IDX) ROUNDED =
-                   FUNCTION NUMVAL(
-                    FUNCTION TRIM(WS-CSV-L-MAX)
-                   )
-      D        DISPLAY '   L-Max 'EVO-L-MAX(EVO-IDX)
-           END-IF
-           
-      *    Main-sequence life span.
-      *        A '-' as value means the star will live on so many
-      *        billion (or trillion, or more) years that it might well
-      *        be considered virtually "immortal" with an infinite
-      *        life span.
-           IF FUNCTION TRIM(WS-CSV-M-SPAN) = '-' THEN                   M-Span
-               MOVE INF-LIFESPAN TO EVO-M-SPAN(EVO-IDX)
-           ELSE COMPUTE EVO-M-SPAN(EVO-IDX) ROUNDED =
-                   FUNCTION NUMVAL(
-                    FUNCTION TRIM(WS-CSV-M-SPAN)
-                   )
-      D        DISPLAY '    Span 'EVO-M-SPAN(EVO-IDX) NO ADVANCING
-           END-IF
-
-      *    Subgiant phase life span.
-      *        A '-' as value means the star will not enter subgiant
-      *        phase at all but instead whizzles quietly into a white
-      *        dwarf.
-           IF FUNCTION TRIM(WS-CSV-S-SPAN) = '-' THEN                   S-Span
-               MOVE NOT-AVAILABLE TO EVO-S-SPAN(EVO-IDX)
-           ELSE COMPUTE EVO-S-SPAN(EVO-IDX) ROUNDED =
-                   FUNCTION NUMVAL(
-                    FUNCTION TRIM(WS-CSV-S-SPAN)
-                   )
-      D        DISPLAY ' → 'EVO-S-SPAN(EVO-IDX) NO ADVANCING
-           END-IF
-
-      *    Giant phase life span.
-      *        A '-' as value means the star will not enter giant phase
-      *        at all but instead evolves directly into either black
-      *        hole or white dwarf.
-           IF FUNCTION TRIM(WS-CSV-G-SPAN) = '-' THEN                   G-Span
-               MOVE NOT-AVAILABLE TO EVO-G-SPAN(EVO-IDX)
-           ELSE COMPUTE EVO-G-SPAN(EVO-IDX) ROUNDED =
-                   FUNCTION NUMVAL(
-                    FUNCTION TRIM(WS-CSV-G-SPAN)
-                   )
-      D        DISPLAY ' → 'EVO-G-SPAN(EVO-IDX) NO ADVANCING
-           END-IF
-
-      D    IF INF-LIFESPAN <> EVO-M-SPAN(EVO-IDX) THEN
-      D        DISPLAY SPACE
-      D    END-IF
-           EXIT PARAGRAPH.
-
-      *********************************
-      * Determine stellar mass (randomly).
-      *
-      * See 'Stellar Mass Table', 4eSpace.p.101.
-      *
-       DETERMINE-STELLAR-MASS.
-           CALL '3D6' USING D6
-           CALL '3D6' USING D62
-           SET EVO-IDX TO MAX-EVO
+           SET WAS-CSV-COMMENT TO FALSE
+      *    Lines beginning with '#' are treated as comments and thus    NOTE
+      *    they are entirely skipped, except for X number of potential
+      *    "control comments":
            EVALUATE TRUE
-               WHEN D6 = 3
-                   IF D62 IS GREATER THAN 10 THEN
-                       SET EVO-IDX DOWN BY 1
-                   END-IF
-               WHEN D6 = 4 OR D6 = 9 OR D6 = 10
-                   EVALUATE TRUE
-                       WHEN D62 IS LESS OR EQUAL TO 8
-                           SET EVO-IDX DOWN BY 2
-                       WHEN D62 IS LESS OR EQUAL TO 11
-                           SET EVO-IDX DOWN BY 3
-                       WHEN OTHER
-                           SET EVO-IDX DOWN BY 4
-                   END-EVALUATE
-                   EVALUATE TRUE
-                       WHEN D6 = 9 SET EVO-IDX DOWN BY 23
-                       WHEN D6 = 10 SET EVO-IDX DOWN BY 26
-                   END-EVALUATE
-               WHEN D6 = 5
-                   EVALUATE TRUE
-                       WHEN D62 IS LESS OR EQUAL TO 7
-                           SET EVO-IDX DOWN BY 5
-                       WHEN D62 IS LESS OR EQUAL TO 10
-                           SET EVO-IDX DOWN BY 6
-                       WHEN D62 IS LESS OR EQUAL TO 12
-                           SET EVO-IDX DOWN BY 7
-                       WHEN OTHER
-                           SET EVO-IDX DOWN BY 8
-                   END-EVALUATE
-               WHEN D6 = 6 OR D6 = 7 OR D6 = 8
-                   EVALUATE TRUE
-                       WHEN D62 IS LESS OR EQUAL TO 7
-                           SET EVO-IDX DOWN BY 9
-                       WHEN D62 IS LESS OR EQUAL TO 9
-                           SET EVO-IDX DOWN BY 10
-                       WHEN D62 = 10
-                           SET EVO-IDX DOWN BY 11
-                       WHEN D62 IS LESS OR EQUAL TO 12
-                           SET EVO-IDX DOWN BY 12
-                       WHEN OTHER
-                           SET EVO-IDX DOWN BY 13
-                   END-EVALUATE
-                   EVALUATE TRUE
-                       WHEN D6 = 7 SET EVO-IDX DOWN BY 5
-                       WHEN D6 = 8 SET EVO-IDX DOWN BY 10
-                   END-EVALUATE
-               WHEN D6 = 11 SET EVO-IDX TO 31
-               WHEN D6 = 12 SET EVO-IDX TO 32
-               WHEN D6 = 13 SET EVO-IDX TO 33
-               WHEN OTHER SET EVO-IDX TO MAX-EVO
-           END-EVALUATE
-           MOVE EVO-IDX TO MASS-INDEX(STAR-IDX)
-      D    DISPLAY '  MASS-INDEX 'MASS-INDEX(STAR-IDX)
-           COMPUTE WS-TMP-NUM1 = EVO-MASS(MASS-INDEX(STAR-IDX))
-           MOVE 0.05 TO WS-TMP-NUM0
-           CALL 'ALTER-VALUE-BY-UPTO'  USING
-                                       WS-TMP-NUM0, WS-TMP-NUM1,
-                                       WS-TMP-NUM2
-           COMPUTE MASS(STAR-IDX) ROUNDED = WS-TMP-NUM2
-      D    DISPLAY '  MASS 'MASS(STAR-IDX)
-           EXIT PARAGRAPH.
-
-      *********************************
-      * Some life stages require re-tuning of the star's initial mass
-      * value. Lets get to it...
-      *
-       REFINE-STELLAR-MASS.
-           EVALUATE TRUE
-               WHEN CLASS-D(STAR-IDX)
-                   COMPUTE MASS(STAR-IDX) ROUNDED =
-                           FUNCTION RANDOM * 0.5 + 0.9
-                   DISPLAY 're-MASS 'MASS(STAR-IDX)
-               WHEN CLASS-X(STAR-IDX)
-      D            DISPLAY ' -- black hole mass... yeah, mass.'
-                   MOVE ERR-BH-MASS TO RETURN-CODE
-           END-EVALUATE
-           EXIT PARAGRAPH.
-
-      *********************************
-      * Determine number of stars in the system.
-      *
-       DETERMINE-NUM-STARS.
-           CALL '3D6' USING D6
-           IF IN-CLUSTER-OR-CORE THEN COMPUTE D6 = D6 + 3
-           EVALUATE TRUE
-               WHEN D6 <= 10 MOVE 1 TO WS-NUM-STARS
-               WHEN D6 <= 15 MOVE 2 TO WS-NUM-STARS
-               WHEN OTHER    MOVE 3 TO WS-NUM-STARS
-           END-EVALUATE
-           EXIT PARAGRAPH.
-
-      *********************************
-      * Determine avg. surface temperature in K.
-      *
-       DETERMINE-TEMPERATURE.
-      D    DISPLAY '[determine-temperature]' NO ADVANCING
-           EVALUATE TRUE
-               WHEN CLASS-X(STAR-IDX)
-      *            Black hole... What -is- their temperature?
-      *            Infinite? Absolute zero or less?
-      D            DISPLAY '-- black hole temperature undeterminable!'
-                   MOVE ERR-BH-TEMP TO RETURN-CODE
-               WHEN CLASS-D(STAR-IDX)
-      *            According to Wiki, white dwarfs range from 3,000K
-      *            up to 150,000K (or so).
-                   COMPUTE WS-TMP-NUM1 =
-                           FUNCTION RANDOM * 147000.0 + 3000.0          3-150KK
-               WHEN CLASS-V(STAR-IDX) OR CLASS-VI(STAR-IDX)
-                   MOVE EVO-AVG-TEMP(MASS-INDEX(STAR-IDX))
-                        TO WS-TMP-NUM1
-               WHEN CLASS-IV(STAR-IDX)
-                   MOVE EVO-AVG-TEMP(MASS-INDEX(STAR-IDX))
-                        TO WS-TMP-NUM1
-                   COMPUTE WS-TMP-NUM1 =
-                           WS-TMP-NUM1 -
-                           ((WS-STELLAR-AGE -
-                             EVO-M-SPAN(MASS-INDEX(STAR-IDX))) /
-                             EVO-S-SPAN(MASS-INDEX(STAR-IDX)) *
-                            (WS-TMP-NUM1 - 4800.0)
-                           )
+               WHEN CSV-LINE(1:1) = '#'
+                   DISPLAY '#' NO ADVANCING
+                   SET WAS-CSV-COMMENT TO TRUE
+                   EXIT PARAGRAPH
+               WHEN CSV-LINE(1:1) = 'M'
+                   DISPLAY 'm' NO ADVANCING
+                   PERFORM PARSE-CSV-LINE-M
                WHEN OTHER
-      *            Giant stars in general: 3-5,000K
-                   COMPUTE WS-TMP-NUM1 =
-                           FUNCTION RANDOM * 2000.0 + 3000.0
-           END-EVALUATE
-           CALL 'ALTER-VALUE-BY-UPTO'  USING
-                                       K100, WS-TMP-NUM1, WS-TMP-NUM2
-           COMPUTE TEMPERATURE(STAR-IDX) ROUNDED = WS-TMP-NUM2
-      D    DISPLAY ' K = 'TEMPERATURE(STAR-IDX)'K'
-           EXIT PARAGRAPH.
-
-      *********************************
-      * Determine a star's radius (in AU).
-      *
-       DETERMINE-STAR-RADIUS.
-           EVALUATE TRUE
-               WHEN CLASS-X(STAR-IDX)
-      *TODO
-      *            Black holes are miniscule, but their -effective- size
-      *            is as big as it was in main sequence. This, of course
-      *            does NOT hold true for black holes that have vacuumed
-      *            neighborhood for a "while" or which have gone through
-      *            a black hole merger or alike.
-                   MOVE NOT-AVAILABLE TO RADIUS(STAR-IDX)
-               WHEN CLASS-D(STAR-IDX)
-      *            White dwarves are tiny ...
-                   MOVE 0.0 TO RADIUS(STAR-IDX)
-               WHEN OTHER
-      *            R = (155,000 × sqrt L) / T²
-                   COMPUTE WS-TMP-NUM0 =                                 √L
-                           FUNCTION SQRT(LUMINOSITY(STAR-IDX))
-                   COMPUTE RADIUS(STAR-IDX) ROUNDED =
-                           (155000.0 * WS-TMP-NUM0) /
-                           (TEMPERATURE(STAR-IDX) ** 2)
+                   DISPLAY '.' NO ADVANCING
+                   PERFORM PARSE-CSV-LINE-N
            END-EVALUATE
            EXIT PARAGRAPH.
 
-      *********************************
-      * Determine orbits (after 1st GG, if any, has been determined).
-      *
-       DETERMINE-ORBITS.
-           IF NO-GAS-GIANT(STAR-IDX) THEN
-               COMPUTE WS-TMP-NUM1 =   OZ-OUTER-LIMIT IN
-                                       ORBITAL-ZONES IN
-                                       WS-STAR(STAR-IDX)
-               CALL '1D6' USING D6
-               COMPUTE WS-TMP-NUM0 = ((0.05 * D6) + 1) / WS-TMP-NUM1
-           ELSE
-               COMPUTE WS-TMP-NUM0 = GG-DISTANCE(STAR-IDX)
-      D        DISPLAY ' GG-centric' NO ADVANCING
-           END-IF
-      D    DISPLAY ' orbiz @ 'WS-TMP-NUM0
-           SET DST-AVAILABLE TO TRUE
-           SET ODIR-INWARD TO TRUE
-           MOVE WS-TMP-NUM0 TO WS-TMP-NUM1
-      *    Spin more orbits as long as we can …
-           PERFORM UNTIL ODIR-OUTWARD AND DST-NOT-AVAILABLE
-               CALL 'DETERMINE-ORBIT-SPACING' USING
-                                       WS-ODIR, ORBITAL-ZONES(STAR-IDX),
-                                       WS-TMP-NUM0, WS-DST-AVAILABLE,
-                                       WS-ORBIT
-               IF ODIR-INWARD AND DST-NOT-AVAILABLE THEN
-                   SET ODIR-OUTWARD TO TRUE
-                   SET DST-AVAILABLE TO TRUE
-                   MOVE WS-TMP-NUM1 TO WS-TMP-NUM0
-               END-IF
-           END-PERFORM
+       PARSE-CSV-LINE-M.
+      *    Parse massive star stuff.
+           UNSTRING CSV-LINE DELIMITED BY ',' INTO
+                   WS-TMP-STR
+                   WS-CSV-MASS OF WS-EVO-CSV-MASSIVE
+                   WS-CSV-LUM
+                   WS-CSV-AVG-TEMP OF WS-EVO-CSV-MASSIVE
+                   WS-CSV-S-SPAN OF WS-EVO-CSV-MASSIVE
+                   ON OVERFLOW
+                       SET WAS-CSV-ERROR TO TRUE
+                       EXIT PARAGRAPH.
+           ADD 1 TO WS-EVO-M-COUNT
+           EXIT PARAGRAPH.
 
+       PARSE-CSV-LINE-N.
+      *    Parse normie star stuff.
+           UNSTRING CSV-LINE DELIMITED BY ',' INTO
+                   WS-CSV-MASS OF WS-EVO-CSV
+                   WS-CSV-APPROX-TYPE
+                   WS-CSV-AVG-TEMP OF WS-EVO-CSV
+                   WS-CSV-L-MIN
+                   WS-CSV-L-MAX
+                   WS-CSV-M-SPAN
+                   WS-CSV-S-SPAN OF WS-EVO-CSV
+                   WS-CSV-G-SPAN
+                   ON OVERFLOW
+                       SET WAS-CSV-ERROR TO TRUE
+                       EXIT PARAGRAPH.
+           ADD 1 TO WS-EVO-COUNT
            EXIT PARAGRAPH.
