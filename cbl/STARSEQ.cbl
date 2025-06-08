@@ -29,7 +29,7 @@
            GOBACK.
 
        DET-N-STAGE.
-           IF SPAN-M EQUAL TO NOT-APPLICABLE SET CLASS-V TO TRUE
+           IF SPAN-M EQUAL TO NOT-APPLICABLE THEN SET CLASS-V TO TRUE
            ELSE
                COMPUTE WS-MS = SPAN-M + SPAN-S
                COMPUTE WS-MSG = SPAN-M + SPAN-S + SPAN-G
@@ -45,8 +45,17 @@
                    SET CLASS-IV TO TRUE
                WHEN OTHER
                    SET CLASS-V TO TRUE
-           END-EVALUATE END-IF
+           END-EVALUATE END-IF.
            EXIT PARAGRAPH.
 
        DET-M-STAGE.
+           IF SPAN-S <= LK-SYSTEM-AGE THEN SET CLASS-V TO TRUE
+           ELSE EVALUATE TRUE
+               WHEN MASS OF LK-STAR <= 8.0
+                   SET WHITE-DWARF TO TRUE
+               WHEN MASS OF LK-STAR <= 25.0
+                   SET NEUTRON-STAR TO TRUE
+               WHEN OTHER
+                   SET BLACK-HOLE TO TRUE
+           END-EVALUATE END-IF.
            EXIT PARAGRAPH.

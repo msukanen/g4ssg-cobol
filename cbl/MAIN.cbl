@@ -62,25 +62,12 @@
            05  WS-CSV-M-SPAN           PIC X(10).
            05  WS-CSV-S-SPAN           PIC X(10).
            05  WS-CSV-G-SPAN           PIC X(10).
-       01  WS-EVO-CSV-MASSIVE.
-           05  WS-CSV-MASS             PIC X(10).
-           05  WS-CSV-LUM              PIC X(12).
-           05  WS-CSV-AVG-TEMP         PIC X(10).
-           05  WS-CSV-S-SPAN           PIC X(12).
-       01  WS-STELLAR-EVO-REC.
+       01  WS-EVO-REC.
            05  EVO-COUNT               PIC 999 COMP-5 VALUE 0.
            05  STELLAR-EVO             OCCURS 0 TO 100 TIMES            ^MAXIMUM
-                                       DEPENDING ON EVO-COUNT OF
-                                                 WS-STELLAR-EVO-REC
+                                       DEPENDING ON EVO-COUNT
                                        INDEXED BY EVO-IDX.
                COPY STLREVO.                                            STLREVO
-       01  WS-STELLAR-EVO-M-REC.
-           05  EVO-COUNT               PIC 999 USAGE COMP-5 VALUE 0.
-           05  STELLAR-EVO             OCCURS 0 TO 100 TIMES            ^MAXIMUM
-                                       DEPENDING ON EVO-COUNT OF
-                                                 WS-STELLAR-EVO-M-REC
-                                       INDEXED BY EVO-M-IDX.
-               COPY STLREVOM.
       *********************************
       * Stellar data:
       *
@@ -125,7 +112,6 @@
       *    Parse our stellar CSV...:
            OPEN INPUT CSV-FILE
            SET EVO-IDX TO 0
-           SET EVO-M-IDX TO 0
            DISPLAY 'Processing CSV: ' NO ADVANCING
            PERFORM UNTIL EXIT
                READ CSV-FILE INTO CSV-LINE
@@ -151,12 +137,12 @@
            DISPLAY 'Star mass 'MASS OF STAR(STAR-IDX)
            
            CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX),
-                                       WS-STELLAR-EVO-REC,
+                                       WS-EVO-REC,
                                        STAR(STAR-IDX)
            DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
            
            CALL 'DETERMINE-LIFE-STAGE' USING WS-SYSTEM-AGE,
-               STELLAR-EVO OF WS-STELLAR-EVO-REC(MASS-INDEX(STAR-IDX))
+               STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
                                        STAR(STAR-IDX)
            DISPLAY 'Stage 'stage(star-idx)
            .
@@ -193,29 +179,24 @@
       *    Parse massive star stuff.
            UNSTRING CSV-LINE DELIMITED BY ',' INTO
                    WS-TMP-STR
-                   WS-CSV-MASS OF WS-EVO-CSV-MASSIVE
-                   WS-CSV-LUM
-                   WS-CSV-AVG-TEMP OF WS-EVO-CSV-MASSIVE
-                   WS-CSV-S-SPAN OF WS-EVO-CSV-MASSIVE
+                   WS-CSV-MASS
+                   WS-CSV-L-MIN
+                   WS-CSV-AVG-TEMP
+                   WS-CSV-S-SPAN
                    ON OVERFLOW
                        SET WAS-CSV-ERROR TO TRUE
                        EXIT PARAGRAPH.
-           SET EVO-M-IDX UP BY 1
-           ADD 1 TO EVO-COUNT OF WS-STELLAR-EVO-M-REC
+           SET EVO-IDX UP BY 1
+           ADD 1 TO EVO-COUNT
 
-           COMPUTE MASS OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
-               FUNCTION NUMVAL(
-                FUNCTION TRIM( WS-CSV-MASS OF WS-EVO-CSV-MASSIVE ))
-           COMPUTE LUMINOSITY-MIN OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
-               FUNCTION NUMVAL(
-                FUNCTION TRIM( WS-CSV-LUM ))
-           COMPUTE AVG-TEMP OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
-               FUNCTION NUMVAL(
-                FUNCTION TRIM( WS-CSV-AVG-TEMP OF WS-EVO-CSV-MASSIVE ))
-           COMPUTE SPAN-S OF WS-STELLAR-EVO-M-REC(EVO-M-IDX) =
-               FUNCTION NUMVAL(
-                FUNCTION TRIM( WS-CSV-S-SPAN OF WS-EVO-CSV-MASSIVE ))
-
+           COMPUTE MASS OF STELLAR-EVO(EVO-IDX) =
+               FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-MASS ))
+           COMPUTE LUMINOSITY-MIN(EVO-IDX) =
+               FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-L-MIN ))
+           COMPUTE AVG-TEMP(EVO-IDX) =
+               FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-AVG-TEMP ))
+           COMPUTE SPAN-S(EVO-IDX) =
+               FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-S-SPAN ))
            EXIT PARAGRAPH.
 
        PARSE-CSV-LINE-N.                                                p.103
@@ -234,21 +215,21 @@
                        EXIT PARAGRAPH.
            
            SET EVO-IDX UP BY 1
-           ADD 1 TO EVO-COUNT OF WS-STELLAR-EVO-REC
+           ADD 1 TO EVO-COUNT OF WS-EVO-REC
 
-           COMPUTE MASS OF WS-STELLAR-EVO-REC(EVO-IDX) =
+           COMPUTE MASS OF WS-EVO-REC(EVO-IDX) =
                FUNCTION NUMVAL(
                 FUNCTION TRIM(
                    WS-CSV-MASS OF WS-EVO-CSV ))
            
            MOVE WS-CSV-APPROX-TYPE TO APPROX-TYPE(EVO-IDX)
            
-           COMPUTE AVG-TEMP OF WS-STELLAR-EVO-REC(EVO-IDX) =
+           COMPUTE AVG-TEMP OF WS-EVO-REC(EVO-IDX) =
                FUNCTION NUMVAL(
                 FUNCTION TRIM(
                    WS-CSV-AVG-TEMP OF WS-EVO-CSV ))
            
-           COMPUTE LUMINOSITY-MIN OF WS-STELLAR-EVO-REC(EVO-IDX) =
+           COMPUTE LUMINOSITY-MIN OF WS-EVO-REC(EVO-IDX) =
                FUNCTION NUMVAL( FUNCTION TRIM(WS-CSV-L-MIN) )
            
            IF  FUNCTION TRIM(WS-CSV-L-MAX) = '-' THEN
@@ -263,8 +244,8 @@
            
            IF  FUNCTION TRIM(WS-CSV-S-SPAN OF WS-EVO-CSV) = '-' THEN
                MOVE NOT-APPLICABLE
-                    TO SPAN-S OF WS-STELLAR-EVO-REC(EVO-IDX)
-           ELSE COMPUTE SPAN-S OF WS-STELLAR-EVO-REC(EVO-IDX) =
+                    TO SPAN-S OF WS-EVO-REC(EVO-IDX)
+           ELSE COMPUTE SPAN-S OF WS-EVO-REC(EVO-IDX) =
                    FUNCTION NUMVAL(
                     FUNCTION TRIM(
                         WS-CSV-S-SPAN OF WS-EVO-CSV )).
