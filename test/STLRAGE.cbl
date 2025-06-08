@@ -26,11 +26,11 @@
            PERFORM VARYING WS-LOOP FROM 1 BY 1 UNTIL WS-LOOP > 100000
            EVALUATE TRUE
                WHEN POP-EX1 AND WS-BYR IS GREATER THAN 0.0
-                 OR POP-Y1 AND WS-BYR < 0.1 OR > 1.85
-                 OR POP-I1 AND WS-BYR < 2.0 OR > 5.5
-                 OR POP-O1 AND WS-BYR < 5.6 OR > 9.1
-                 OR POP-I2 AND WS-BYR < 8.0 OR > 11.5
-                 OR POP-EX2 AND WS-BYR < 10.0
+               WHEN POP-Y1 AND (WS-BYR < 0.1 OR > 1.85)
+               WHEN POP-I1 AND (WS-BYR < 2.0 OR > 5.5)
+               WHEN POP-O1 AND (WS-BYR < 5.6 OR > 9.1)
+               WHEN POP-I2 AND (WS-BYR < 8.0 OR > 11.5)
+               WHEN POP-EX2 AND WS-BYR < 10.0
                    GO TO AGE-FAILURE
            END-EVALUATE
            END-PERFORM.
