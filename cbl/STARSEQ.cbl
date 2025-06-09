@@ -1,7 +1,7 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID.   DETERMINE-LIFE-STAGE.
        AUTHOR.       Markku Sukanen.
-       DATE-WRITTEN. June 8, 2025.
+       DATE-WRITTEN. June 8, 2025 — June 9, 2025.
       ******************************************************************
       *
       * Determine a star's life sequence based on its age and mass-
@@ -13,11 +13,12 @@
        COPY    CONST.
        01  WS-MS                       USAGE COMP-2.
        01  WS-MSG                      USAGE COMP-2.
+       77  MS-MASS-MIN                 USAGE COMP-2 VALUE  8.0.
+       77  SMS-MASS-MIN                USAGE COMP-2 VALUE 25.0.
        LINKAGE SECTION.
        01  LK-SYSTEM-AGE.
            05  BYR                     USAGE COMP-2.
-           05  POPULATION              PIC XX.
-               COPY STLRPOP.
+           77  FILLER                  PIC XX.
        01  LK-EVO.
            COPY STLREVO.
        01  LK-STAR.
@@ -48,11 +49,11 @@
            EXIT PARAGRAPH.
 
        DET-M-STAGE.
-           IF SPAN-S <= LK-SYSTEM-AGE THEN SET CLASS-V TO TRUE
+           IF SPAN-S <= BYR THEN SET CLASS-V TO TRUE
            ELSE EVALUATE TRUE
-               WHEN MASS OF LK-STAR <= 8.0
+               WHEN MASS OF LK-STAR <= MS-MASS-MIN
                    SET WHITE-DWARF TO TRUE
-               WHEN MASS OF LK-STAR <= 25.0
+               WHEN MASS OF LK-STAR <= SMS-MASS-MIN
                    SET NEUTRON-STAR TO TRUE
                WHEN OTHER
                    SET BLACK-HOLE TO TRUE

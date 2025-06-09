@@ -1,34 +1,26 @@
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. ALTER-VALUE-BY-PERCENTAGE.
-       AUTHOR.     Markku Sukanen.
-
+       PROGRAM-ID.   ALTER-VALUE-BY-PERCENTAGE.
+       AUTHOR.       Markku Sukanen.
+       DATE-WRITTEN. ? - June 9, 2025.
+      *********
+      * Alter the given value by up to some given percentage up/down.
+      *
+      * LK-PERCENTAGE  +/-% of variance on
+      * LK-SRC         some number
+      * LK-RESULT      returned here.
+      *
        DATA DIVISION.
        WORKING-STORAGE SECTION.
        01  WS-CHANGE                   USAGE COMP-2.
        01  WS-MUL                      USAGE COMP-2.
        
        LINKAGE SECTION.
-       01  VAR-PERCENTAGE              USAGE COMP-2.
-       01  VAR-VALUE                   USAGE COMP-2.
-       01  RET-VALUE                   USAGE COMP-2.
+       01  LK-PERCENTAGE               USAGE COMP-2.
+       01  LK-SRC                      USAGE COMP-2.
+       01  LK-RESULT                   USAGE COMP-2.
 
-      *********
-      * Alter the given value by up to some given percentage up/down.
-      *
-      * VAR-PERCENTAGE   +/-% of variance on
-      * VAR-VALUE        some number
-      * RET-VALUE        returned here.
-      *
-      *********
-       PROCEDURE DIVISION USING VAR-PERCENTAGE, VAR-VALUE, RET-VALUE.
-           COMPUTE WS-MUL = VAR-PERCENTAGE / 100.0
-           COMPUTE WS-CHANGE = VAR-VALUE * WS-MUL
-           CALL 'ALTER-VALUE-BY-UPTO'
-               USING WS-CHANGE,
-                     VAR-VALUE,
-                     RET-VALUE
-      *    DISPLAY "[alter-value-by-percentage]"
-      *            ' ±'VAR-PERCENTAGE'%'
-      *            ' of 'VAR-VALUE' = 'RET-VALUE
-      *            ' (by 'WS-CHANGE')'
+       PROCEDURE DIVISION USING LK-PERCENTAGE, LK-SRC, LK-RESULT.
+           COMPUTE WS-MUL = LK-PERCENTAGE / 100.0
+           COMPUTE WS-CHANGE = LK-SRC * WS-MUL
+           CALL 'ALTER-VALUE-BY-UPTO' USING WS-CHANGE, LK-SRC, LK-RESULT
            GOBACK.

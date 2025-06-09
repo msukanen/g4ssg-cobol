@@ -14,7 +14,8 @@
        01  WS-NUM                      USAGE COMP-2.
 
        LINKAGE SECTION.
-       01  LK-AGE                      USAGE COMP-2.
+       01  LK-AGE.
+           COPY STLRAGE.
        01  LK-EVO.
            COPY STLREVO.
        01  LK-STAR.
@@ -37,7 +38,7 @@
                    ELSE
                        COMPUTE LUMINOSITY =
                                LUMINOSITY-MIN + (
-                                (LK-AGE / SPAN-M) *
+                                (BYR / SPAN-M) *
                                 (LUMINOSITY-MAX - LUMINOSITY-MIN)
                                 )
                    END-IF
@@ -56,4 +57,8 @@
                        COMPUTE LUMINOSITY = 25.0 * LUMINOSITY-MAX
                    END-IF
            END-EVALUATE
+
+           MOVE LUMINOSITY TO WS-NUM
+           CALL 'ALTER-VALUE-BY-PERCENTAGE' USING
+                   TEN-PERCENT, WS-NUM, LUMINOSITY
            GOBACK.

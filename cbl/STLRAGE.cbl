@@ -18,7 +18,7 @@
                COPY STLRPOP.
 
        PROCEDURE DIVISION USING LK-STLR-AGE.
-           CALL '3D6' USING D6
+           COPY 3D6.
            EVALUATE TRUE
                WHEN D6 IS LESS OR EQUAL TO 3
                    SET POP-EX1 TO TRUE
@@ -33,8 +33,8 @@
            END-EVALUATE
 
            IF NOT POP-EX1 THEN
-               CALL '1D6' USING D6
-               CALL '1D6' USING D62
+               COPY 1D6.
+               COPY 1D62.
                IF POP-Y1 THEN
                    COMPUTE BYR = 0.1
                            + (0.3 * (D6 - 1))

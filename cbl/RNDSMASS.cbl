@@ -17,23 +17,23 @@
            COPY STARDATA.
 
        PROCEDURE DIVISION USING LK-STAR.
-           CALL '3D6' USING D6
+           COPY 3D6.
            EVALUATE TRUE
                WHEN D6 = 3
-                   CALL '3D6' USING D6
+                   COPY 3D6.
                    EVALUATE TRUE
                        WHEN D6 <= 10 MOVE 2.0 TO MASS
                        WHEN OTHER MOVE 1.9 TO MASS
                    END-EVALUATE
                WHEN D6 = 4
-                   CALL '3D6' USING D6
+                   COPY 3D6.
                    EVALUATE TRUE
                        WHEN D6 <= 8 MOVE 1.8 TO MASS
                        WHEN D6 <= 11 MOVE 1.7 TO MASS
                        WHEN OTHER MOVE 1.6 TO MASS
                    END-EVALUATE
                WHEN D6 = 5
-                   CALL '3D6' USING D6
+                   COPY 3D6.
                    EVALUATE TRUE
                        WHEN D6 <= 7 MOVE 1.5 TO MASS
                        WHEN D6 <= 10 MOVE 1.45 TO MASS
@@ -41,7 +41,7 @@
                        WHEN OTHER MOVE 1.35 TO MASS
                    END-EVALUATE
                WHEN D6 = 6
-                   CALL '3D6' USING D6
+                   COPY 3D6.
                    EVALUATE TRUE
                        WHEN D6 <= 7 MOVE 1.3 TO MASS
                        WHEN D6 <= 9 MOVE 1.25 TO MASS
@@ -50,7 +50,7 @@
                        WHEN OTHER MOVE 1.1 TO MASS
                    END-EVALUATE
                WHEN D6 = 7
-                   CALL '3D6' USING D6
+                   COPY 3D6.
                    EVALUATE TRUE
                        WHEN D6 <= 7 MOVE 1.05 TO MASS
                        WHEN D6 <= 9 MOVE 1.0 TO MASS
@@ -59,7 +59,7 @@
                        WHEN OTHER MOVE 0.85 TO MASS
                    END-EVALUATE
                WHEN D6 = 8
-                   CALL '3D6' USING D6
+                   COPY 3D6.
                    EVALUATE TRUE
                        WHEN D6 <= 7 MOVE 0.8 TO MASS
                        WHEN D6 <= 9 MOVE 0.75 TO MASS
@@ -68,14 +68,14 @@
                        WHEN OTHER MOVE 0.6 TO MASS
                    END-EVALUATE
                WHEN D6 = 9
-                   CALL '3D6' USING D6
+                   COPY 3D6.
                    EVALUATE TRUE
                        WHEN D6 <= 8 MOVE 0.55 TO MASS
                        WHEN D6 <= 11 MOVE 0.5 TO MASS
                        WHEN OTHER MOVE 0.45 TO MASS
                    END-EVALUATE
                WHEN D6 = 10
-                   CALL '3D6' USING D6
+                   COPY 3D6.
                    EVALUATE TRUE
                        WHEN D6 <= 8 MOVE 0.4 TO MASS
                        WHEN D6 <= 11 MOVE 0.35 TO MASS

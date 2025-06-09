@@ -1,7 +1,7 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID.   G4SSGCRE.
        AUTHOR.       Markku Sukanen.
-       DATE-WRITTEN. June 3, 2025
+       DATE-WRITTEN. June 3 — June 9, 2025
       ******************************************************************
       *
       * Star system generator, based on "GURPS 4e Space" rules.
@@ -10,8 +10,8 @@
        COPY        TESTENV.
        INPUT-OUTPUT SECTION.
        FILE-CONTROL.
-           SELECT CSV-FILE ASSIGN TO "data/SPECS.csv"
-                           ORGANIZATION IS LINE SEQUENTIAL.
+           SELECT CSV-FILE             ASSIGN TO "data/SPECS.csv"
+                                       ORGANIZATION IS LINE SEQUENTIAL.
 
        DATA DIVISION.
        FILE SECTION.
@@ -72,9 +72,7 @@
       * Stellar data:
       *
        01  WS-SYSTEM-AGE.
-           05  BYR                     USAGE COMP-2.
-           05  POPULATION              PIC XX.
-               COPY STLRPOP.
+           COPY STLRAGE.
        01  WS-STAR-SYSTEM.
            05  STAR-COUNT              PIC 999 USAGE COMP-5 VALUE 0.
            05  STAR                    OCCURS 0 TO 200 TIMES
@@ -87,12 +85,13 @@
            05  LK-P-LEN                PIC ZZ9.
            05  LK-P-DATA               PIC X(100).
 
-       PROCEDURE DIVISION USING LK-PARM.
+      ******************************************************************
       *    /`--------´\
       *   [    MAIN    ]
       *    ^~~~~~~~~~~^
+       PROCEDURE DIVISION USING LK-PARM.
       *    Parse "command line":
-           COMPUTE PARM-LEN = FUNCTION LENGTH(FUNCTION TRIM(LK-P-DATA)).
+           COMPUTE PARM-LEN = FUNCTION LENGTH(FUNCTION TRIM(LK-P-DATA))
            PERFORM UNTIL PARM-INDEX > PARM-LEN
                INITIALIZE PARSED-FIELD
                UNSTRING LK-P-DATA      DELIMITED BY ','
@@ -107,7 +106,7 @@
                IF PARSED-FIELD(1:1) = 'C' THEN
                    SET IN-CLUSTER-OR-CORE TO TRUE
                END-IF
-           END-PERFORM.
+           END-PERFORM
            
       *    Parse our stellar CSV...:
            OPEN INPUT CSV-FILE
@@ -151,13 +150,17 @@
                      STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
                                        STAR(STAR-IDX)
            DISPLAY 'Luminosity 'LUMINOSITY(STAR-IDX)
+
+           CALL 'DETERMINE-RADIUS' USING STAR(STAR-IDX)
        
        .BYE-BYE.
            CLOSE CSV-FILE
-      *    /`-----------´\
-      *   [ 0_0 END MAIN  ]
-      *    ^*************^
            GOBACK.
+      *
+      *    /`-----------´\                                              END
+      *   [ 0_0 END MAIN  ] -~=>       {:THE END:}                      MAIN
+      *    )  ( `¨¨¨¨¨¨¨¨´                                              CRAZE
+      ******************************************************************BYENOW
 
       *********************************
       * Parse a line of CSV.                                            p.103
