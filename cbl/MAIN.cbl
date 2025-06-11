@@ -27,7 +27,6 @@
        01  WS-TMP-NUM0                 USAGE COMP-2.
        01  WS-TMP-NUM1                 USAGE COMP-2.
        01  WS-TMP-NUM2                 USAGE COMP-2.
-       01  WS-TMP-IDX                  INDEX.
       *********************************
       * Parsed run params:
        01  PARSED-PARM.
@@ -152,20 +151,20 @@
            DISPLAY 'Generating star system with 'STAR-COUNT' star(s).'
 
       *    Third, generate the star(s).
-      *    Set sep-idx initially to zero so that we get correct index
-      *    counting inside the performed loop.
-           SET SEP-IDX TO 0
+           SET SEP-IDX TO 1
+           SET PREV-SEP-IDX TO SEP-IDX
+           SET PREV-SEP-IDX DOWN BY 1
            PERFORM VARYING STAR-IDX FROM 1 BY 1
                    UNTIL STAR-IDX > STAR-COUNT
-               SET SEP-IDX UP BY 1
                IF STAR-IDX > 1 THEN
                    DISPLAY '---'STAR-IDX
                END-IF
+               
                PERFORM GENERATE-STAR
-      *        Separation details are needed only for companion star(s).
-               IF STAR-IDX > 1 THEN
-                   PERFORM DETERMINE-ORBITAL-SEPARATION
-               END-IF
+               PERFORM DETERMINE-ORBITAL-SEPARATION
+
+               SET SEP-IDX UP BY 1
+               SET PREV-SEP-IDX UP BY 1
            END-PERFORM
 
       *-----------------------------------------------------------------,
@@ -324,12 +323,11 @@
                 MOVE 'Y' TO WS-TMP-STR
            ELSE MOVE '-' TO WS-TMP-STR.
            IF SEP-IDX > 1 THEN
-               SET WS-TMP-IDX TO SEP-IDX
-               SET WS-TMP-IDX DOWN BY 1
                CALL 'DETERMINE-ORBITAL-SEP' USING WS-TMP-STR
                                        STAR-COUNT, WS-STAR-SEPARATION
-                                       WS-TMP-IDX, SEP-IDX
+                                       PREV-SEP-IDX, SEP-IDX
            ELSE
+      *        We omit the non-existent earlier separation value ;-)
                CALL 'DETERMINE-ORBITAL-SEP' USING WS-TMP-STR,
                                        STAR-COUNT, WS-STAR-SEPARATION
                                        OMITTED, SEP-IDX

@@ -18,8 +18,8 @@
        01  WS-LOOP                     USAGE COMP-1.
 
        PROCEDURE DIVISION.
-      D    DISPLAY '[call GEN-STELLAR-AGE]'
-           CALL 'GEN-STELLAR-AGE' USING WS-STELLAR-AGE
+      D    DISPLAY '[call GEN-SYSTEM-AGE]'
+           CALL 'GEN-SYSTEM-AGE' USING WS-STELLAR-AGE
            COMPUTE WS-BYR ROUNDED = BYR
       D    DISPLAY ' ⇢ BYr 'WS-BYR' ('BYR')'
       D    DISPLAY ' ⇢ Pop 'POPULATION

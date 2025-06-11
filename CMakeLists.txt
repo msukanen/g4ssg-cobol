@@ -45,7 +45,7 @@ add_custom_target(
 #
 # Some foobar string testing.
 #
-set(TEST_STRFMT_SRC test/STRFMT.cbl cbl/STRFMT?.cbl cbl/STRFMT??.cbl)
+set(TEST_STRFMT_SRC test/STRFMT.cbl cbl/STRFMT.cbl)
 set(TEST_STRFMT_EXE tstrfmt)
 set(TEST_STRFMT_PATH ${CMAKE_CURRENT_BINARY_DIR}/${TEST_STRFMT_EXE})
 add_custom_command(

@@ -1,6 +1,6 @@
            05  STAR-SEP                OCCURS 0 TO 200 TIMES            Irrelevt
                                        DEPENDING ON STAR-COUNT          for 1st
-                                       INDEXED BY SEP-IDX.              star.
+                                       INDEXED BY SEP-IDX, PREV-SEP-IDX. star.
                10  SEPARATION-DETAILS.
                    15  SEPARATION      PIC S9 VALUE -1.                 1st N/A
                      88  SEP-V-CLOSE     VALUE 1.
