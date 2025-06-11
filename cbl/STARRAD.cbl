@@ -14,4 +14,11 @@
            COPY STARDATA.
 
        PROCEDURE DIVISION USING LK-STAR.
+           IF WHITE-DWARF OR NEUTRON-STAR OR BLACK-HOLE THEN
+                MOVE 0.0 TO RADIUS
+           ELSE
+               COMPUTE RADIUS
+                     = (FUNCTION SQRT(LUMINOSITY) * 155000)
+                     / (TEMPERATURE * TEMPERATURE)
+           END-IF.
            GOBACK.

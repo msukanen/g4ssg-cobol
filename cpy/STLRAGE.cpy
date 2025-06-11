@@ -1,6 +1,6 @@
       ******************************************************************
       * WS-SYSTEM-AGE, etc.
       *
-           05  BYR                     USAGE COMP-2.
-           05  POPULATION              PIC XX.
+           10  BYR                     USAGE COMP-2.
+           10  POPULATION              PIC XX.
                COPY STLRPOP.

@@ -27,6 +27,7 @@
        01  WS-TMP-NUM0                 USAGE COMP-2.
        01  WS-TMP-NUM1                 USAGE COMP-2.
        01  WS-TMP-NUM2                 USAGE COMP-2.
+       01  WS-TMP-IDX                  INDEX.
       *********************************
       * Parsed run params:
        01  PARSED-PARM.
@@ -63,22 +64,29 @@
            05  WS-CSV-S-SPAN           PIC X(10).
            05  WS-CSV-G-SPAN           PIC X(10).
        01  WS-EVO-REC.
-           05  EVO-COUNT               PIC 999 COMP-5 VALUE 0.
+           05  EVO-COUNT               PIC 999 COMP-5 VALUE 0.          max 100?
            05  STELLAR-EVO             OCCURS 0 TO 100 TIMES            ^MAXIMUM
                                        DEPENDING ON EVO-COUNT
                                        INDEXED BY EVO-IDX.
-               COPY STLREVO.                                            STLREVO
+               COPY STLREVO.
       *********************************
       * Stellar data:
       *
-       01  WS-SYSTEM-AGE.
-           COPY STLRAGE.
        01  WS-STAR-SYSTEM.
-           05  STAR-COUNT              PIC 999 USAGE COMP-5 VALUE 0.
-           05  STAR                    OCCURS 0 TO 200 TIMES
+           05  SYSTEM-AGE.
+               COPY STLRAGE.
+           05  STAR-COUNT              PIC 999 USAGE COMP-5 VALUE 0.    max 200?
+           05  STAR                    OCCURS 0 TO 200 TIMES            ^MAXIMUM
                                        DEPENDING ON STAR-COUNT
                                        INDEXED BY STAR-IDX.
                COPY STARDATA.
+      *    Note that separation data ~should~ be ignored for the first    H0X!
+      *    star in the system, entirely — it has meaning only for its
+      *    (sub-)companion stars.  And, as such, we won't have any
+      *    meaningful info here for the first (or only) star of the
+      *    star system.
+       01  WS-STAR-SEPARATION.
+           COPY STARSEP.
 
        LINKAGE SECTION.
        01  LK-PARM.
@@ -121,47 +129,53 @@
                IF WAS-CSV-ERROR THEN
                    DISPLAY X"0a"'           CSV: ERROR'
                            X"0a"'           with 'CSV-LINE
-                   GO TO BYE-BYE
+                   CLOSE CSV-FILE
+                   STOP RUN                                              ABORT!
                END-IF
            END-PERFORM
+           CLOSE CSV-FILE
            DISPLAY X"0a"'           CSV: OK'.
        
-           CALL 'GEN-SYSTEM-AGE' USING WS-SYSTEM-AGE
+      *    First things first, the star system's age:
+           CALL 'GEN-SYSTEM-AGE' USING SYSTEM-AGE
            DISPLAY 'System age 'BYR' BYr.'
 
-           SET STAR-IDX TO 1.
-           ADD 1 TO STAR-COUNT
-           
-           CALL 'GEN-SRCH-MASS' USING  STAR(STAR-IDX)
-           DISPLAY 'Star mass 'MASS OF STAR(STAR-IDX)
-           
-           CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX)
-                                       WS-EVO-REC
-                                       STAR(STAR-IDX)
-      D    DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
-      D    DISPLAY ' ⇢ massive 'MASS-STAGE(STAR-IDX)
-           
-           CALL 'DETERMINE-LIFE-STAGE' USING WS-SYSTEM-AGE
-                     STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
-                                       STAR(STAR-IDX)
-           DISPLAY 'Stage 'STAGE(STAR-IDX)
+      *    Second, determine the (initial) number of stars in the
+      *    system.  This may change later, depending on if e.g. very
+      *    distant companions have their own "local companions".
+           COPY 3D6.
+           EVALUATE TRUE
+               WHEN D6 IS LESS OR EQUAL TO 10 MOVE 1 TO STAR-COUNT
+               WHEN D6 IS LESS OR EQUAL TO 15 MOVE 2 TO STAR-COUNT
+               WHEN OTHER MOVE 3 TO STAR-COUNT
+           END-EVALUATE
+           DISPLAY 'Generating star system with 'STAR-COUNT' star(s).'
 
-           CALL 'DETERMINE-LUMINOSITY' USING WS-SYSTEM-AGE
-                     STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
-                                       STAR(STAR-IDX)
-           DISPLAY 'Luminosity 'LUMINOSITY(STAR-IDX)
+      *    Third, generate the star(s).
+      *    Set sep-idx initially to zero so that we get correct index
+      *    counting inside the performed loop.
+           SET SEP-IDX TO 0
+           PERFORM VARYING STAR-IDX FROM 1 BY 1
+                   UNTIL STAR-IDX > STAR-COUNT
+               SET SEP-IDX UP BY 1
+               IF STAR-IDX > 1 THEN
+                   DISPLAY '---'STAR-IDX
+               END-IF
+               PERFORM GENERATE-STAR
+      *        Separation details are needed only for companion star(s).
+               IF STAR-IDX > 1 THEN
+                   PERFORM DETERMINE-ORBITAL-SEPARATION
+               END-IF
+           END-PERFORM
 
-           CALL 'DETERMINE-RADIUS' USING STAR(STAR-IDX)
-       
-       .BYE-BYE.
-           CLOSE CSV-FILE
-           GOBACK.
+      *-----------------------------------------------------------------,
+      *                                                                 D------,
+      *    /`-----------´\                                              | END  |
+      *   [ 0_0 END MAIN  ] -~=>       {:THE END:}                      | MAIN |
+      *    )  ( `¨¨¨¨¨¨¨¨´                                              | CRAZE|
+           GOBACK.                                                      D------´
+      ******************************************************************´
       *
-      *    /`-----------´\                                              END
-      *   [ 0_0 END MAIN  ] -~=>       {:THE END:}                      MAIN
-      *    )  ( `¨¨¨¨¨¨¨¨´                                              CRAZE
-      ******************************************************************BYENOW
-
       *********************************
       * Parse a line of CSV.                                            p.103
       *                                                                 p.126
@@ -194,6 +208,7 @@
                    WS-CSV-S-SPAN
                    ON OVERFLOW
                        SET WAS-CSV-ERROR TO TRUE
+                       MOVE 112 TO RETURN-CODE
                        EXIT PARAGRAPH.
            SET EVO-IDX UP BY 1
            ADD 1 TO EVO-COUNT
@@ -221,6 +236,7 @@
                    WS-CSV-G-SPAN
                    ON OVERFLOW
                        SET WAS-CSV-ERROR TO TRUE
+                       MOVE 112 TO RETURN-CODE
                        EXIT PARAGRAPH.
            
            SET EVO-IDX UP BY 1
@@ -265,3 +281,58 @@
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-G-SPAN)).
            
            EXIT PARAGRAPH.
+
+      *********************************
+      * We'll generate a star here, obviously.
+      *
+       GENERATE-STAR.
+           CALL 'GEN-SRCH-MASS' USING  STAR(STAR-IDX)                   Mass
+           DISPLAY 'Star mass 'MASS OF STAR(STAR-IDX)
+           
+           CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX)           massidx*
+                                       WS-EVO-REC
+                                       STAR(STAR-IDX)
+      D    DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
+      D    DISPLAY ' ⇢ massive 'MASS-STAGE(STAR-IDX)
+           
+           CALL 'DETERMINE-LIFE-STAGE' USING SYSTEM-AGE                 stage
+                       STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
+                                       STAR(STAR-IDX)
+           DISPLAY 'Stage 'STAGE(STAR-IDX)
+
+           CALL 'DETERMINE-LUMINOSITY' USING SYSTEM-AGE                 lum
+                       STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
+                                       STAR(STAR-IDX)
+           CALL 'FMT-NUM' USING LUMINOSITY(STAR-IDX), WS-TMP-STR
+           DISPLAY 'Luminosity 'FUNCTION TRIM(WS-TMP-STR)' × Sol'
+
+           CALL 'DETERMINE-STAR-K'     USING SYSTEM-AGE                 surf. K
+                       STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
+                                       STAR(STAR-IDX)
+           DISPLAY 'Surface temperature 'TEMPERATURE(STAR-IDX)'K'
+           
+           CALL 'DETERMINE-RADIUS' USING STAR(STAR-IDX)                 rad AU
+           CALL 'FMT-NUM' USING RADIUS(STAR-IDX), WS-TMP-STR
+           DISPLAY 'Radius 'FUNCTION TRIM(WS-TMP-STR)' AU'
+           
+           EXIT PARAGRAPH.
+
+       DETERMINE-ORBITAL-SEPARATION.
+      *    3rd in a trinary is, of course, further away than the other
+      *    companion.
+           IF SEP-IDX > 2 THEN
+                MOVE 'Y' TO WS-TMP-STR
+           ELSE MOVE '-' TO WS-TMP-STR.
+           IF SEP-IDX > 1 THEN
+               SET WS-TMP-IDX TO SEP-IDX
+               SET WS-TMP-IDX DOWN BY 1
+               CALL 'DETERMINE-ORBITAL-SEP' USING WS-TMP-STR
+                                       STAR-COUNT, WS-STAR-SEPARATION
+                                       WS-TMP-IDX, SEP-IDX
+           ELSE
+               CALL 'DETERMINE-ORBITAL-SEP' USING WS-TMP-STR,
+                                       STAR-COUNT, WS-STAR-SEPARATION
+                                       OMITTED, SEP-IDX
+           END-IF
+           EXIT PARAGRAPH.
+           
