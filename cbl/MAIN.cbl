@@ -431,10 +431,12 @@
            COMPUTE WS-TMP-NUM1 =
                    0.01 * FUNCTION SQRT(CURRENT-LUM(STAR-IDX)).
            IF WS-TMP-NUM0 > WS-TMP-NUM1 THEN
-                MOVE WS-TMP-NUM0 TO INNER-LIMIT(STAR-IDX)
-           ELSE MOVE WS-TMP-NUM1 TO INNER-LIMIT(STAR-IDX).
+                MOVE WS-TMP-NUM0
+                     TO INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX)
+           ELSE MOVE WS-TMP-NUM1
+                     TO INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX).
       *    Second, outer limit.  This is based on current mass.
-           COMPUTE OUTER-LIMIT(STAR-IDX) =
+           COMPUTE OUTER-LIMIT OF ORBIT-LIMITS(STAR-IDX) =
                    40 * MASS OF STAR(STAR-IDX).
       *    Third, snow line.  This is based on initial mass while the
       *    star was in main sequence — the distance from the star at

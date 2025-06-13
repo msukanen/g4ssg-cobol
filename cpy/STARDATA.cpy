@@ -22,3 +22,8 @@
                    15  INNER-LIMIT     USAGE COMP-2.                    AU
                    15  OUTER-LIMIT     USAGE COMP-2.                    AU
                    15  SNOW-LINE       USAGE COMP-2.                    AU
+               10  FORBIDDEN-ZONE-COUNT PIC 99 VALUE 0.
+               10  FORBIDDEN-ZONES     OCCURS 99 TIMES
+                                       INDEXED BY FZ-IDX.
+                   15  INNER-LIMIT     USAGE COMP-2.                    AU
+                   15  OUTER-LIMIT     USAGE COMP-2.                    AU
