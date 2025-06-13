@@ -33,16 +33,18 @@
            05  PARM-LEN                PIC 999 USAGE COMP-3.
            05  PARSED-FIELD            PIC X(20).
            05  PARM-INDEX              VALUE 1 INDEX.
+       01  WS-VERBOSITY                PIC X VALUE '-'.
+           88  VERBOSE-OUTPUT          VALUE 'Y'
+                                       WHEN SET TO FALSE IS '-'.
       *********************************
       * Misc. variables/constants.
        01  WS-WAS-CSV-COMMENT          PIC X VALUE 'N'.
            88  WAS-CSV-COMMENT         VALUE 'Y'
                                        WHEN SET TO FALSE IS 'N'.
-      *    88  WAS-NOT-CSV-COMMENT     VALUE 'N'.
        01  WS-WAS-CSV-ERROR            PIC X VALUE 'N'.
            88  WAS-CSV-ERROR           VALUE 'Y'
                                        WHEN SET TO FALSE IS 'N'.
-      *    88  NO-CSV-ERROR            VALUE 'N'.
+       01  WS-FMT-DIGITS               PIC 9 VALUE 5.
        COPY CONST.
       * ... 200 as maximum number of stars is probably overkill ...
        77  MAX-STARS                   PIC 999 VALUE 200.               CONSTANT
@@ -50,6 +52,9 @@
       * System generation basics.
        01  WS-IN-CLUSTER-OR-CORE       PIC X VALUE 'N'.
            88  IN-CLUSTER-OR-CORE      VALUE 'Y'
+                                       WHEN SET TO FALSE IS 'N'.
+       01  WS-THIRD-IN-TRINARY         PIC X VALUE 'N'.
+           88  IS-THIRD-IN-TRINARY     VALUE 'Y'
                                        WHEN SET TO FALSE IS 'N'.
       *********************************
       * Stellar CSV related:
@@ -77,20 +82,38 @@
            05  STAR-COUNT              PIC 999 USAGE COMP-5 VALUE 0.    max 200?
            05  STAR                    OCCURS 0 TO 200 TIMES            ^MAXIMUM
                                        DEPENDING ON STAR-COUNT
-                                       INDEXED BY STAR-IDX.
+                                       INDEXED BY
+                                           STAR-IDX, PARENT-STAR-IDX.
                COPY STARDATA.
-      *    Note that separation data ~should~ be ignored for the first    H0X!
+      *    Note that separation data ~should~ be ignored for the fiINFO!
       *    star in the system, entirely — it has meaning only for its
       *    (sub-)companion stars.  And, as such, we won't have any
       *    meaningful info here for the first (or only) star of the
       *    star system.
-       01  WS-STAR-SEPARATION.
-           COPY STARSEP.
+       01  WS-STAR-SEP                 OCCURS 0 TO 200 TIMES
+                                       DEPENDING ON STAR-COUNT
+                                       INDEXED BY SEP-IDX, PREV-SEP-IDX.
+           05  SEP-INFO-USEABLE        PIC X VALUE '-'.
+               88  SEP-IS-USEABLE      VALUE 'Y'
+                                       WHEN SET TO FALSE IS '-'.
+           05  SEP-BETWEEN.
+      *            SEP-FROM generally refers to the system's primary,
+      *            but can also be referring to e.g. a very distant
+      *            companion that has its own orbiting star(s).
+               10  SEP-FROM            INDEX.                           STAR-IDX
+               10  SEP-TO              INDEX.                           STAR-IDX
+           05  SEP-CATEGORY            PIC S9 VALUE -1.
+               COPY SEPCATEG.
+      *        Distance is the average distance to the primary(* star.
+      *        Minimum/maximum distance are derived from this with help
+      *        of ORBIT-ECCENTRICITY of their INFO.
+           05  SEP-AVG-DISTANCE        USAGE COMP-2.                    AU
+           05  ORBIT-ECCENTRICITY      USAGE COMP-2.
 
        LINKAGE SECTION.
        01  LK-PARM.
-           05  LK-P-LEN                PIC ZZ9.
-           05  LK-P-DATA               PIC X(100).
+           05  LK-PARM-LEN             PIC ZZ9.
+           05  LK-PARM-DATA            PIC X(100).
 
       ******************************************************************
       *    /`--------´\
@@ -98,10 +121,11 @@
       *    ^~~~~~~~~~~^
        PROCEDURE DIVISION USING LK-PARM.
       *    Parse "command line":
-           COMPUTE PARM-LEN = FUNCTION LENGTH(FUNCTION TRIM(LK-P-DATA))
+           COMPUTE PARM-LEN =
+                   FUNCTION LENGTH(FUNCTION TRIM(LK-PARM-DATA)).
            PERFORM UNTIL PARM-INDEX > PARM-LEN
                INITIALIZE PARSED-FIELD
-               UNSTRING LK-P-DATA      DELIMITED BY ','
+               UNSTRING LK-PARM-DATA   DELIMITED BY ','
                                        INTO PARSED-FIELD
                                        WITH POINTER PARM-INDEX
                END-UNSTRING
@@ -110,15 +134,22 @@
                                        INTO PARSED-FIELD
                MOVE FUNCTION TRIM(PARSED-FIELD) TO PARSED-FIELD
 
-               IF PARSED-FIELD(1:1) = 'C' THEN
-                   SET IN-CLUSTER-OR-CORE TO TRUE
-               END-IF
-           END-PERFORM
+               EVALUATE TRUE
+                   WHEN PARSED-FIELD(1:1) = 'C'
+                     OR PARSED-FIELD(1:1) = 'c'
+                       SET IN-CLUSTER-OR-CORE TO TRUE
+                   WHEN PARSED-FIELD(1:1) = 'V'
+                     OR PARSED-FIELD(1:1) = 'v'
+                       SET VERBOSE-OUTPUT TO TRUE
+               END-EVALUATE
+           END-PERFORM.
            
-      *    Parse our stellar CSV...:
-           OPEN INPUT CSV-FILE
-           SET EVO-IDX TO 0
-           DISPLAY 'Processing CSV: ' NO ADVANCING
+      *    Parse our stellar CSV …
+           IF VERBOSE-OUTPUT THEN
+               DISPLAY 'Processing CSV: ' NO ADVANCING
+           END-IF.
+           OPEN INPUT CSV-FILE.
+           SET EVO-IDX TO 0.
            PERFORM UNTIL EXIT
                READ CSV-FILE INTO CSV-LINE
                    AT END              EXIT PERFORM
@@ -131,13 +162,17 @@
                    CLOSE CSV-FILE
                    STOP RUN                                              ABORT!
                END-IF
-           END-PERFORM
-           CLOSE CSV-FILE
-           DISPLAY X"0a"'           CSV: OK'.
+           END-PERFORM.
+           CLOSE CSV-FILE.
+           IF VERBOSE-OUTPUT THEN
+               DISPLAY X"0a"'           CSV: OK'
+           END-IF.
        
       *    First things first, the star system's age:
-           CALL 'GEN-SYSTEM-AGE' USING SYSTEM-AGE
-           DISPLAY 'System age 'BYR' BYr.'
+           CALL 'GEN-SYSTEM-AGE' USING SYSTEM-AGE.
+           IF VERBOSE-OUTPUT THEN
+               DISPLAY 'System age 'BYR' BYr.'
+           END-IF.
 
       *    Second, determine the (initial) number of stars in the
       *    system.  This may change later, depending on if e.g. very
@@ -147,31 +182,65 @@
                WHEN D6 IS LESS OR EQUAL TO 10 MOVE 1 TO STAR-COUNT
                WHEN D6 IS LESS OR EQUAL TO 15 MOVE 2 TO STAR-COUNT
                WHEN OTHER MOVE 3 TO STAR-COUNT
-           END-EVALUATE
-           DISPLAY 'Generating star system with 'STAR-COUNT' star(s).'
+           END-EVALUATE.
+           IF VERBOSE-OUTPUT THEN
+               DISPLAY 'Generating star system with '
+                       STAR-COUNT' star(s).'
+           END-IF.
 
       *    Third, generate the star(s).
-           SET SEP-IDX TO 1
-           SET PREV-SEP-IDX TO SEP-IDX
-           SET PREV-SEP-IDX DOWN BY 1
+           SET SEP-IDX TO 1.
+           SET PREV-SEP-IDX TO SEP-IDX.
+           SET PREV-SEP-IDX DOWN BY 1.
+           SET STAR-IDX TO 1.
+           SET PARENT-STAR-IDX TO STAR-IDX.
            PERFORM VARYING STAR-IDX FROM 1 BY 1
                    UNTIL STAR-IDX > STAR-COUNT
-               IF STAR-IDX > 1 THEN
-                   DISPLAY '---'STAR-IDX
+               IF STAR-IDX > 1 THEN DISPLAY '-~→ 'STAR-IDX END-IF
+               IF SEP-IDX = 1 THEN
+                    SET SEP-IS-USEABLE(SEP-IDX) TO FALSE
+               ELSE SET SEP-IS-USEABLE(SEP-IDX) TO TRUE
                END-IF
-               
+
                PERFORM GENERATE-STAR
-               PERFORM DETERMINE-ORBITAL-SEPARATION
+               PERFORM DETERMINE-ORBITAL-INFO
+               IF SEP-IS-USEABLE(SEP-IDX) THEN
+                   MOVE 2 TO WS-FMT-DIGITS
+
+                   CALL 'FMT-NUM' USING SEP-AVG-DISTANCE(SEP-IDX),
+                                       WS-FMT-DIGITS,
+                                       WS-TMP-STR
+                   DISPLAY 'Avg. distance to parent '
+                           FUNCTION TRIM(WS-TMP-STR)' AU with '
+                           NO ADVANCING
+                   CALL 'FMT-NUM' USING ORBIT-ECCENTRICITY(SEP-IDX),
+                                       WS-FMT-DIGITS,
+                                       WS-TMP-STR
+                   DISPLAY FUNCTION TRIM(WS-TMP-STR)
+                           ' eccentricity (' NO ADVANCING
+                   COMPUTE WS-TMP-NUM0 =
+                           (1 - ORBIT-ECCENTRICITY(SEP-IDX)) *
+                           SEP-AVG-DISTANCE(SEP-IDX)
+                   CALL 'FMT-NUM' USING WS-TMP-NUM0, WS-FMT-DIGITS,
+                                       WS-TMP-STR
+                   DISPLAY FUNCTION TRIM(WS-TMP-STR)' → ' NO ADVANCING
+                   COMPUTE WS-TMP-NUM0 =
+                           (1 + ORBIT-ECCENTRICITY(SEP-IDX)) *
+                           SEP-AVG-DISTANCE(SEP-IDX)
+                   CALL 'FMT-NUM' USING WS-TMP-NUM0, WS-FMT-DIGITS,
+                                       WS-TMP-STR
+                   DISPLAY FUNCTION TRIM(WS-TMP-STR)').'
+               END-IF
 
                SET SEP-IDX UP BY 1
                SET PREV-SEP-IDX UP BY 1
-           END-PERFORM
+           END-PERFORM.
 
       *-----------------------------------------------------------------,
-      *                                                                 D------,
-      *    /`-----------´\                                              | END  |
-      *   [ 0_0 END MAIN  ] -~=>       {:THE END:}                      | MAIN |
-      *    )  ( `¨¨¨¨¨¨¨¨´                                              | CRAZE|
+      *****                                                             D------,
+      *****    /`-----------´\                                          | GAME |
+      *****   [ 0_0 END MAIN  ] -~=>       {:THE END:}                  | OVER |
+      **/      )  ( `¨¨¨¨¨¨¨¨´                                          | MAN! |
            GOBACK.                                                      D------´
       ******************************************************************´
       *
@@ -185,14 +254,20 @@
       *    "control comments":
            EVALUATE TRUE
                WHEN CSV-LINE(1:1) = '#'
-                   DISPLAY '#' NO ADVANCING
+                   IF VERBOSE-OUTPUT THEN
+                     DISPLAY '#' NO ADVANCING
+                   END-IF
                    SET WAS-CSV-COMMENT TO TRUE
                    EXIT PARAGRAPH
                WHEN CSV-LINE(1:1) = 'M'
-                   DISPLAY 'm' NO ADVANCING
+                   IF VERBOSE-OUTPUT THEN
+                     DISPLAY 'm' NO ADVANCING
+                   END-IF
                    PERFORM PARSE-CSV-LINE-M
                WHEN OTHER
-                   DISPLAY '.' NO ADVANCING
+                   IF VERBOSE-OUTPUT THEN
+                     DISPLAY '.' NO ADVANCING
+                   END-IF
                    PERFORM PARSE-CSV-LINE-N
            END-EVALUATE
            EXIT PARAGRAPH.
@@ -214,12 +289,12 @@
 
            COMPUTE MASS OF STELLAR-EVO(EVO-IDX) =
                FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-MASS ))
-           COMPUTE LUMINOSITY-MIN(EVO-IDX) =
-               FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-L-MIN ))
+           COMPUTE LUMINOSITY-MIN(EVO-IDX) =                            Flat lum
+               FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-L-MIN ))          actually
            COMPUTE AVG-TEMP(EVO-IDX) =
                FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-AVG-TEMP ))
-           COMPUTE SPAN-S(EVO-IDX) =
-               FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-S-SPAN ))
+           COMPUTE SPAN-S(EVO-IDX) =                                    Stable
+               FUNCTION NUMVAL( FUNCTION TRIM( WS-CSV-S-SPAN ))         lifespan
            EXIT PARAGRAPH.
 
        PARSE-CSV-LINE-N.                                                p.103
@@ -241,42 +316,42 @@
            SET EVO-IDX UP BY 1
            ADD 1 TO EVO-COUNT OF WS-EVO-REC
 
-           COMPUTE MASS OF WS-EVO-REC(EVO-IDX) =
+           COMPUTE MASS OF WS-EVO-REC(EVO-IDX) =                        Mass
                FUNCTION NUMVAL(
                 FUNCTION TRIM(
                    WS-CSV-MASS OF WS-EVO-CSV ))
            
-           MOVE WS-CSV-APPROX-TYPE TO APPROX-TYPE(EVO-IDX)
+           MOVE WS-CSV-APPROX-TYPE TO APPROX-TYPE(EVO-IDX)              Approx.T
            
            COMPUTE AVG-TEMP OF WS-EVO-REC(EVO-IDX) =
                FUNCTION NUMVAL(
                 FUNCTION TRIM(
                    WS-CSV-AVG-TEMP OF WS-EVO-CSV ))
            
-           COMPUTE LUMINOSITY-MIN OF WS-EVO-REC(EVO-IDX) =
+           COMPUTE LUMINOSITY-MIN OF WS-EVO-REC(EVO-IDX) =              L-Min
                FUNCTION NUMVAL( FUNCTION TRIM(WS-CSV-L-MIN) )
            
-           IF  FUNCTION TRIM(WS-CSV-L-MAX) = '-' THEN
+           IF  FUNCTION TRIM(WS-CSV-L-MAX) = '-' THEN                   L-Max
                MOVE NOT-APPLICABLE TO LUMINOSITY-MAX(EVO-IDX)
            ELSE COMPUTE LUMINOSITY-MAX(EVO-IDX) =
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-L-MAX)).
            
-           IF  FUNCTION TRIM(WS-CSV-M-SPAN) = '-' THEN
-               MOVE NOT-APPLICABLE TO SPAN-M(EVO-IDX)
-           ELSE COMPUTE SPAN-M(EVO-IDX) =
+           IF  FUNCTION TRIM(WS-CSV-M-SPAN) = '-' THEN                  Main-
+               MOVE NOT-APPLICABLE TO SPAN-M(EVO-IDX)                   sequence
+           ELSE COMPUTE SPAN-M(EVO-IDX) =                               lifespan
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-M-SPAN)).
            
-           IF  FUNCTION TRIM(WS-CSV-S-SPAN OF WS-EVO-CSV) = '-' THEN
-               MOVE NOT-APPLICABLE
-                    TO SPAN-S OF WS-EVO-REC(EVO-IDX)
-           ELSE COMPUTE SPAN-S OF WS-EVO-REC(EVO-IDX) =
+           IF  FUNCTION TRIM(WS-CSV-S-SPAN OF WS-EVO-CSV) = '-' THEN    Subgiant
+               MOVE NOT-APPLICABLE                                      stage
+                    TO SPAN-S OF WS-EVO-REC(EVO-IDX)                    lifespan
+           ELSE COMPUTE SPAN-S OF WS-EVO-REC(EVO-IDX) =                 
                    FUNCTION NUMVAL(
                     FUNCTION TRIM(
                         WS-CSV-S-SPAN OF WS-EVO-CSV )).
            
-           IF  FUNCTION TRIM(WS-CSV-G-SPAN) = '-' THEN
-               MOVE NOT-APPLICABLE TO SPAN-G(EVO-IDX)
-           ELSE COMPUTE SPAN-G(EVO-IDX) =
+           IF  FUNCTION TRIM(WS-CSV-G-SPAN) = '-' THEN                  Giant
+               MOVE NOT-APPLICABLE TO SPAN-G(EVO-IDX)                   stage
+           ELSE COMPUTE SPAN-G(EVO-IDX) =                               lifespan
                    FUNCTION NUMVAL(FUNCTION TRIM(WS-CSV-G-SPAN)).
            
            EXIT PARAGRAPH.
@@ -302,7 +377,9 @@
            CALL 'DETERMINE-LUMINOSITY' USING SYSTEM-AGE                 lum
                        STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
                                        STAR(STAR-IDX)
-           CALL 'FMT-NUM' USING LUMINOSITY(STAR-IDX), WS-TMP-STR
+           MOVE 5 TO WS-FMT-DIGITS
+           CALL 'FMT-NUM' USING        LUMINOSITY(STAR-IDX),
+                                       WS-FMT-DIGITS, WS-TMP-STR
            DISPLAY 'Luminosity 'FUNCTION TRIM(WS-TMP-STR)' × Sol'
 
            CALL 'DETERMINE-STAR-K'     USING SYSTEM-AGE                 surf. K
@@ -311,26 +388,57 @@
            DISPLAY 'Surface temperature 'TEMPERATURE(STAR-IDX)'K'
            
            CALL 'DETERMINE-RADIUS' USING STAR(STAR-IDX)                 rad AU
-           CALL 'FMT-NUM' USING RADIUS(STAR-IDX), WS-TMP-STR
+           MOVE 5 TO WS-FMT-DIGITS
+           CALL 'FMT-NUM' USING        RADIUS(STAR-IDX),
+                                       WS-FMT-DIGITS, WS-TMP-STR
            DISPLAY 'Radius 'FUNCTION TRIM(WS-TMP-STR)' AU'
-           
            EXIT PARAGRAPH.
 
-       DETERMINE-ORBITAL-SEPARATION.
+       DETERMINE-ORBITAL-INFO.
       *    3rd in a trinary is, of course, further away than the other
       *    companion.
-           IF SEP-IDX > 2 THEN
-                MOVE 'Y' TO WS-TMP-STR
-           ELSE MOVE '-' TO WS-TMP-STR.
+           IF SEP-IDX = 1 THEN
+               SET SEP-IS-USEABLE(SEP-IDX) TO FALSE
+               EXIT PARAGRAPH
+           ELSE SET SEP-IS-USEABLE(SEP-IDX) TO TRUE.
+
+      *    SEP-IDX 3+ are treated as third-or-beyond in a trinary (or
+      *    larger) star system.
+           IF SEP-IDX > 2 THEN SET IS-THIRD-IN-TRINARY TO TRUE
+           ELSE SET IS-THIRD-IN-TRINARY TO FALSE.
+
+      *    STAR-IDX and PARENT-STAR-IDX are relevant only for companion
+      *    star(s) — for the primary star of the system they're utterly
+      *    irrelevant/useless.
            IF SEP-IDX > 1 THEN
-               CALL 'DETERMINE-ORBITAL-SEP' USING WS-TMP-STR
-                                       STAR-COUNT, WS-STAR-SEPARATION
-                                       PREV-SEP-IDX, SEP-IDX
-           ELSE
-      *        We omit the non-existent earlier separation value ;-)
-               CALL 'DETERMINE-ORBITAL-SEP' USING WS-TMP-STR,
-                                       STAR-COUNT, WS-STAR-SEPARATION
-                                       OMITTED, SEP-IDX
-           END-IF
+               MOVE STAR-IDX TO SEP-TO(SEP-IDX)
+               MOVE PARENT-STAR-IDX TO SEP-FROM(SEP-IDX)
+           END-IF.
+
+           CALL 'GENERATE-ORBITAL-SEP-CATEGORY' USING
+                                       WS-THIRD-IN-TRINARY,
+                                       SEP-CATEGORY(SEP-IDX).
+           CALL 'GENERATE-ORBIT-DISTANCE' USING
+                                       SEP-CATEGORY(SEP-IDX),
+                                       SEP-AVG-DISTANCE(SEP-IDX)
+           CALL 'DETERMINE-ORBITAL-ECCENTRICITY' USING
+                                       ORBIT-ECCENTRICITY(SEP-IDX)
            EXIT PARAGRAPH.
            
+       DETERMINE-ORBIT-LIMITS.
+      *    First, inner limit:
+           COMPUTE WS-TMP-NUM0 = 0.1 * MASS OF STAR(STAR-IDX).
+           COMPUTE WS-TMP-NUM1 =
+                   0.01 * FUNCTION SQRT(CURRENT-LUM(STAR-IDX)).
+           IF WS-TMP-NUM0 > WS-TMP-NUM1 THEN
+                MOVE WS-TMP-NUM0 TO INNER-LIMIT(STAR-IDX)
+           ELSE MOVE WS-TMP-NUM1 TO INNER-LIMIT(STAR-IDX).
+      *    Second, outer limit.  This is based on current mass.
+           COMPUTE OUTER-LIMIT(STAR-IDX) =
+                   40 * MASS OF STAR(STAR-IDX).
+      *    Third, snow line.  This is based on initial mass while the
+      *    star was in main sequence — the distance from the star at
+      *    which water ice could exist ~during~ planetary formation.
+           COMPUTE SNOW-LINE(STAR-IDX) =
+                   4.85 * FUNCTION SQRT(INITIAL-LUM(STAR-IDX)).
+           EXIT PARAGRAPH.

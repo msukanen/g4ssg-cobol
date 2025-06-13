@@ -18,7 +18,7 @@
                 MOVE 0.0 TO RADIUS
            ELSE
                COMPUTE RADIUS
-                     = (FUNCTION SQRT(LUMINOSITY) * 155000)
+                     = (FUNCTION SQRT(CURRENT-LUM) * 155000)
                      / (TEMPERATURE * TEMPERATURE)
            END-IF.
            GOBACK.

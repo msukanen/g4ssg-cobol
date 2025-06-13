@@ -27,35 +27,42 @@
       *            WD & N have about negligible luminosity, rarely higher
       *            than 0.001 sol.
                    COMPUTE WS-NUM = FUNCTION RANDOM * 0.0099 + 0.0001
-                   MOVE WS-NUM TO LUMINOSITY
+                   MOVE WS-NUM TO CURRENT-LUM
+                   MOVE LUMINOSITY-MIN TO INITIAL-LUM
                WHEN BLACK-HOLE
       *            Black holes by default have no luminosity at all …
                    MOVE 0.0 TO LUMINOSITY
+                   MOVE LUMINOSITY-MIN TO INITIAL-LUM
                WHEN CLASS-V OR CLASS-VI
                    IF LUMINOSITY-MAX = NOT-APPLICABLE
                       OR MASSIVE-STAR THEN
-                       MOVE LUMINOSITY-MIN TO LUMINOSITY
+                       MOVE LUMINOSITY-MIN TO CURRENT-LUM
                    ELSE
-                       COMPUTE LUMINOSITY =
+                       COMPUTE CURRENT-LUM =
                                LUMINOSITY-MIN + (
                                 (BYR / SPAN-M) *
                                 (LUMINOSITY-MAX - LUMINOSITY-MIN)
                                 )
                    END-IF
+      *            Naturally, current and initial lumiosity are one and
+      *            the same - no change has yet happened.
+                   MOVE CURRENT-LUM TO INITIAL-LUM
                WHEN CLASS-IV
                    IF LUMINOSITY-MAX = NOT-APPLICABLE
                       OR MASSIVE-STAR THEN
-                       MOVE LUMINOSITY-MIN TO LUMINOSITY
+                       MOVE LUMINOSITY-MIN TO CURRENT-LUM
                    ELSE
-                       MOVE LUMINOSITY-MAX TO LUMINOSITY
+                       MOVE LUMINOSITY-MAX TO CURRENT-LUM
                    END-IF
+                   MOVE LUMINOSITY-MIN TO INITIAL-LUM
                WHEN OTHER
                    IF LUMINOSITY-MAX = NOT-APPLICABLE
                       OR MASSIVE-STAR THEN
-                       COMPUTE LUMINOSITY = 25.0 * LUMINOSITY-MIN
+                       COMPUTE CURRENT-LUM = 25.0 * LUMINOSITY-MIN
                    ELSE
-                       COMPUTE LUMINOSITY = 25.0 * LUMINOSITY-MAX
+                       COMPUTE CURRENT-LUM = 25.0 * LUMINOSITY-MAX
                    END-IF
+                   MOVE LUMINOSITY-MIN TO INITIAL-LUM
            END-EVALUATE
 
            MOVE LUMINOSITY TO WS-NUM
