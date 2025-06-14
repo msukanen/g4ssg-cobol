@@ -19,17 +19,15 @@
                    COPY STARSTG.
                10  RADIUS              USAGE COMP-2.                    AU
                10  ORBIT-LIMITS.
-                   15  INNER-LIMIT     USAGE COMP-2.                    AU
-                   15  OUTER-LIMIT     USAGE COMP-2.                    AU
-                   15  SNOW-LINE       USAGE COMP-2.                    AU
+                   COPY ORBLIM.
                10  FORBIDDEN-ZONE-COUNT PIC 99 VALUE 0.
                10  FORBIDDEN-ZONES     OCCURS 99 TIMES
                                        INDEXED BY FZ-IDX.
                    15  INNER-LIMIT     USAGE COMP-2.                    AU
                    15  OUTER-LIMIT     USAGE COMP-2.                    AU
                10  GAS-GIANT-ARRANGEMENT.
-                   15  ARRANGEMENT     PIC X.
-                       COPY GGARR.
+                   15  ARRANGEMENT     PIC X VALUE '-'.
+                       COPY GGARR.cpy.
                    15  DISTANCE        USAGE COMP-2.                    AU
                10  ORBITS              OCCURS 200 TIMES
                                        INDEXED BY ORB-IDX.

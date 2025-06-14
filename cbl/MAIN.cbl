@@ -209,8 +209,9 @@
                    PERFORM DISPLAY-ORBITAL-INFO
                END-IF
                
-               PERFORM DETERMINE-ORBIT-LIMITS
-               PERFORM DETERMINE-GAS-GIANT-ARRANGEMENT
+               CALL 'GEN-GAS-GIANT-ARRANGEMENT' USING
+                                       ORBIT-LIMITS(STAR-IDX),
+                                       GAS-GIANT-ARRANGEMENT(STAR-IDX)
                PERFORM DETERMINE-ORBITS
 
                SET SEP-IDX UP BY 1
@@ -373,6 +374,8 @@
            CALL 'FMT-NUM' USING        RADIUS(STAR-IDX),
                                        WS-FMT-DIGITS, WS-TMP-STR
            DISPLAY 'Radius 'FUNCTION TRIM(WS-TMP-STR)' AU'
+
+           PERFORM DETERMINE-ORBIT-LIMITS
            EXIT PARAGRAPH.
 
        DETERMINE-ORBITAL-INFO.
@@ -416,14 +419,19 @@
                      TO INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX)
            ELSE MOVE WS-TMP-NUM1
                      TO INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX).
+      D    DISPLAY 'Inner-limit at '
+      D            INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX)' AU'
       *    Second, outer limit.  This is based on current mass.
            COMPUTE OUTER-LIMIT OF ORBIT-LIMITS(STAR-IDX) =
                    40 * MASS OF STAR(STAR-IDX).
+      D    DISPLAY 'Outer-limit at '
+      D            OUTER-LIMIT OF ORBIT-LIMITS(STAR-IDX)' AU'
       *    Third, snow line.  This is based on initial mass while the
       *    star was in main sequence — the distance from the star at
       *    which water ice could exist ~during~ planetary formation.
            COMPUTE SNOW-LINE(STAR-IDX) =
                    4.85 * FUNCTION SQRT(INITIAL-LUM(STAR-IDX)).
+      D    DISPLAY 'Snow-line at 'SNOW-LINE(STAR-IDX)' AU'
            EXIT PARAGRAPH.
 
        DISPLAY-ORBITAL-INFO.
@@ -449,42 +457,6 @@
            CALL 'FMT-NUM' USING        WS-TMP-NUM0, WS-FMT-DIGITS,
                                        WS-TMP-STR.
            DISPLAY FUNCTION TRIM(WS-TMP-STR)').'.
-           EXIT PARAGRAPH.
-
-       DETERMINE-GAS-GIANT-ARRANGEMENT.
-           COPY 3D6.
-           EVALUATE TRUE
-               WHEN D6 <= 10
-                   SET NO-GAS-GIANT OF STAR(STAR-IDX) TO TRUE
-      *            With no gas giant present, there's no need to
-      *            determine the non-existent one's distance …
-                   EXIT PARAGRAPH
-               WHEN D6 <= 12
-                   SET CONVENTIONAL-GG OF STAR(STAR-IDX) TO TRUE
-               WHEN D6 <= 14
-                   SET ECCENTRIC-GG OF STAR(STAR-IDX) TO TRUE
-               WHEN OTHER
-                   SET EPISTELLAR-GG OF STAR(STAR-IDX) TO TRUE
-           END-EVALUATE.
-
-           EVALUATE TRUE
-               WHEN CONVENTIONAL-GG OF STAR(STAR-IDX)
-                   COPY 2D6.
-                   COMPUTE DISTANCE OF
-                       GAS-GIANT-ARRANGEMENT(STAR-IDX) =
-                           0.05 * (D6 - 2) + 1 * SNOW-LINE(STAR-IDX)
-               WHEN ECCENTRIC-GG OF STAR(STAR-IDX)
-                   COPY 1D6.
-                   COMPUTE DISTANCE OF
-                       GAS-GIANT-ARRANGEMENT(STAR-IDX) =
-                           0.125 * D6 * SNOW-LINE(STAR-IDX)
-               WHEN OTHER                                               ↑ epstlr
-                   COPY 3D6.
-                   COMPUTE DISTANCE OF
-                       GAS-GIANT-ARRANGEMENT(STAR-IDX) =
-                           0.1 * D6 * INNER-LIMIT OF
-                                      ORBIT-LIMITS(STAR-IDX)
-           END-EVALUATE.
            EXIT PARAGRAPH.
 
        DETERMINE-ORBITS.

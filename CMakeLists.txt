@@ -21,6 +21,7 @@ set(COBOL_DEBUG )
 set(MAIN_SOURCE WRAPPER.cbl
     cbl/MAIN.cbl
     ${RNG_DEPS}
+    cbl/GG*.cbl
     cbl/ORB*.cbl
     cbl/RNDSMASS.cbl
     cbl/STRFMT.cbl
