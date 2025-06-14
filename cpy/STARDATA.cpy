@@ -27,3 +27,10 @@
                                        INDEXED BY FZ-IDX.
                    15  INNER-LIMIT     USAGE COMP-2.                    AU
                    15  OUTER-LIMIT     USAGE COMP-2.                    AU
+               10  GAS-GIANT-ARRANGEMENT.
+                   15  ARRANGEMENT     PIC X.
+                       COPY GGARR.
+                   15  DISTANCE        USAGE COMP-2.                    AU
+               10  ORBITS              OCCURS 200 TIMES
+                                       INDEXED BY ORB-IDX.
+                   15  DISTANCE        USAGE COMP-2.                    AU

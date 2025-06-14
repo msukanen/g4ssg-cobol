@@ -1,8 +1,9 @@
 .vscode
+.vs
 !bin/.gitignore
 CMakeFiles
 *.cmake
 CMakeCache.txt
 Makefile
-g4ssg
 Testing
+out

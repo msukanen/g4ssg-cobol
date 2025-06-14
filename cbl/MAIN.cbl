@@ -32,7 +32,7 @@
        01  PARSED-PARM.
            05  PARM-LEN                PIC 999 USAGE COMP-3.
            05  PARSED-FIELD            PIC X(20).
-           05  PARM-INDEX              VALUE 1 INDEX.
+           05  PARM-INDEX              PIC 9 VALUE 1.
        01  WS-VERBOSITY                PIC X VALUE '-'.
            88  VERBOSE-OUTPUT          VALUE 'Y'
                                        WHEN SET TO FALSE IS '-'.
@@ -78,7 +78,7 @@
       *
        01  WS-STAR-SYSTEM.
            05  SYSTEM-AGE.
-               COPY STLRAGE.
+               COPY STLRAGE.cpy.
            05  STAR-COUNT              PIC 999 USAGE COMP-5 VALUE 0.    max 200?
            05  STAR                    OCCURS 0 TO 200 TIMES            ^MAXIMUM
                                        DEPENDING ON STAR-COUNT
@@ -203,34 +203,15 @@
                END-IF
 
                PERFORM GENERATE-STAR
+               
                PERFORM DETERMINE-ORBITAL-INFO
                IF SEP-IS-USEABLE(SEP-IDX) THEN
-                   MOVE 2 TO WS-FMT-DIGITS
-
-                   CALL 'FMT-NUM' USING SEP-AVG-DISTANCE(SEP-IDX),
-                                       WS-FMT-DIGITS,
-                                       WS-TMP-STR
-                   DISPLAY 'Avg. distance to parent '
-                           FUNCTION TRIM(WS-TMP-STR)' AU with '
-                           NO ADVANCING
-                   CALL 'FMT-NUM' USING ORBIT-ECCENTRICITY(SEP-IDX),
-                                       WS-FMT-DIGITS,
-                                       WS-TMP-STR
-                   DISPLAY FUNCTION TRIM(WS-TMP-STR)
-                           ' eccentricity (' NO ADVANCING
-                   COMPUTE WS-TMP-NUM0 =
-                           (1 - ORBIT-ECCENTRICITY(SEP-IDX)) *
-                           SEP-AVG-DISTANCE(SEP-IDX)
-                   CALL 'FMT-NUM' USING WS-TMP-NUM0, WS-FMT-DIGITS,
-                                       WS-TMP-STR
-                   DISPLAY FUNCTION TRIM(WS-TMP-STR)' → ' NO ADVANCING
-                   COMPUTE WS-TMP-NUM0 =
-                           (1 + ORBIT-ECCENTRICITY(SEP-IDX)) *
-                           SEP-AVG-DISTANCE(SEP-IDX)
-                   CALL 'FMT-NUM' USING WS-TMP-NUM0, WS-FMT-DIGITS,
-                                       WS-TMP-STR
-                   DISPLAY FUNCTION TRIM(WS-TMP-STR)').'
+                   PERFORM DISPLAY-ORBITAL-INFO
                END-IF
+               
+               PERFORM DETERMINE-ORBIT-LIMITS
+               PERFORM DETERMINE-GAS-GIANT-ARRANGEMENT
+               PERFORM DETERMINE-ORBITS
 
                SET SEP-IDX UP BY 1
                SET PREV-SEP-IDX UP BY 1
@@ -411,8 +392,8 @@
       *    star(s) — for the primary star of the system they're utterly
       *    irrelevant/useless.
            IF SEP-IDX > 1 THEN
-               MOVE STAR-IDX TO SEP-TO(SEP-IDX)
-               MOVE PARENT-STAR-IDX TO SEP-FROM(SEP-IDX)
+               SET SEP-TO(SEP-IDX) TO STAR-IDX
+               SET SEP-FROM(SEP-IDX) TO PARENT-STAR-IDX
            END-IF.
 
            CALL 'GENERATE-ORBITAL-SEP-CATEGORY' USING
@@ -443,4 +424,68 @@
       *    which water ice could exist ~during~ planetary formation.
            COMPUTE SNOW-LINE(STAR-IDX) =
                    4.85 * FUNCTION SQRT(INITIAL-LUM(STAR-IDX)).
+           EXIT PARAGRAPH.
+
+       DISPLAY-ORBITAL-INFO.
+           MOVE 2 TO WS-FMT-DIGITS.
+           CALL 'FMT-NUM' USING        SEP-AVG-DISTANCE(SEP-IDX),
+                                       WS-FMT-DIGITS, WS-TMP-STR.
+           DISPLAY 'Avg. distance to parent '
+                   FUNCTION TRIM(WS-TMP-STR)' AU with '
+                   NO ADVANCING.
+           CALL 'FMT-NUM' USING        ORBIT-ECCENTRICITY(SEP-IDX),
+                                       WS-FMT-DIGITS, WS-TMP-STR.
+           DISPLAY FUNCTION TRIM(WS-TMP-STR)
+                   ' eccentricity (' NO ADVANCING
+           COMPUTE WS-TMP-NUM0 =
+                   (1 - ORBIT-ECCENTRICITY(SEP-IDX)) *
+                   SEP-AVG-DISTANCE(SEP-IDX).
+           CALL 'FMT-NUM' USING        WS-TMP-NUM0, WS-FMT-DIGITS,
+                                       WS-TMP-STR.
+           DISPLAY FUNCTION TRIM(WS-TMP-STR)' → ' NO ADVANCING.
+           COMPUTE WS-TMP-NUM0 =
+                   (1 + ORBIT-ECCENTRICITY(SEP-IDX)) *
+                   SEP-AVG-DISTANCE(SEP-IDX).
+           CALL 'FMT-NUM' USING        WS-TMP-NUM0, WS-FMT-DIGITS,
+                                       WS-TMP-STR.
+           DISPLAY FUNCTION TRIM(WS-TMP-STR)').'.
+           EXIT PARAGRAPH.
+
+       DETERMINE-GAS-GIANT-ARRANGEMENT.
+           COPY 3D6.
+           EVALUATE TRUE
+               WHEN D6 <= 10
+                   SET NO-GAS-GIANT OF STAR(STAR-IDX) TO TRUE
+      *            With no gas giant present, there's no need to
+      *            determine the non-existent one's distance …
+                   EXIT PARAGRAPH
+               WHEN D6 <= 12
+                   SET CONVENTIONAL-GG OF STAR(STAR-IDX) TO TRUE
+               WHEN D6 <= 14
+                   SET ECCENTRIC-GG OF STAR(STAR-IDX) TO TRUE
+               WHEN OTHER
+                   SET EPISTELLAR-GG OF STAR(STAR-IDX) TO TRUE
+           END-EVALUATE.
+
+           EVALUATE TRUE
+               WHEN CONVENTIONAL-GG OF STAR(STAR-IDX)
+                   COPY 2D6.
+                   COMPUTE DISTANCE OF
+                       GAS-GIANT-ARRANGEMENT(STAR-IDX) =
+                           0.05 * (D6 - 2) + 1 * SNOW-LINE(STAR-IDX)
+               WHEN ECCENTRIC-GG OF STAR(STAR-IDX)
+                   COPY 1D6.
+                   COMPUTE DISTANCE OF
+                       GAS-GIANT-ARRANGEMENT(STAR-IDX) =
+                           0.125 * D6 * SNOW-LINE(STAR-IDX)
+               WHEN OTHER                                               ↑ epstlr
+                   COPY 3D6.
+                   COMPUTE DISTANCE OF
+                       GAS-GIANT-ARRANGEMENT(STAR-IDX) =
+                           0.1 * D6 * INNER-LIMIT OF
+                                      ORBIT-LIMITS(STAR-IDX)
+           END-EVALUATE.
+           EXIT PARAGRAPH.
+
+       DETERMINE-ORBITS.
            EXIT PARAGRAPH.
