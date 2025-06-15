@@ -1,6 +1,7 @@
 .vscode
 .vs
 !bin/.gitignore
+!bin/*.md
 CMakeFiles
 *.cmake
 CMakeCache.txt
