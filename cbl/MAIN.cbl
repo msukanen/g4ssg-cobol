@@ -212,6 +212,7 @@
                CALL 'GEN-GAS-GIANT-ARRANGEMENT' USING
                                        ORBIT-LIMITS(STAR-IDX),
                                        GAS-GIANT-ARRANGEMENT(STAR-IDX)
+               DISPLAY 'Gas giant arrangement: 'ARRANGEMENT(STAR-IDX)
                PERFORM DETERMINE-ORBITS
 
                SET SEP-IDX UP BY 1
@@ -342,40 +343,40 @@
       * We'll generate a star here, obviously.
       *
        GENERATE-STAR.
-           CALL 'GEN-SRCH-MASS' USING  STAR(STAR-IDX)                   Mass
-           DISPLAY 'Star mass 'MASS OF STAR(STAR-IDX)
+           CALL 'GEN-SRCH-MASS' USING  STAR(STAR-IDX).                  Mass
+           DISPLAY 'Star mass 'MASS OF STAR(STAR-IDX).
            
            CALL 'GET-MASS-INDEX' USING MASS OF STAR(STAR-IDX)           massidx*
                                        WS-EVO-REC
-                                       STAR(STAR-IDX)
-      D    DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX)
-      D    DISPLAY ' ⇢ massive 'MASS-STAGE(STAR-IDX)
+                                       STAR(STAR-IDX).
+      D    DISPLAY ' ⇢ index 'MASS-INDEX(STAR-IDX).
+      D    DISPLAY ' ⇢ massive 'MASS-STAGE(STAR-IDX).
            
            CALL 'DETERMINE-LIFE-STAGE' USING SYSTEM-AGE                 stage
                        STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
-                                       STAR(STAR-IDX)
-           DISPLAY 'Stage 'STAGE(STAR-IDX)
+                                       STAR(STAR-IDX).
+           DISPLAY 'Stage 'STAGE(STAR-IDX).
 
            CALL 'DETERMINE-LUMINOSITY' USING SYSTEM-AGE                 lum
                        STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
-                                       STAR(STAR-IDX)
-           MOVE 5 TO WS-FMT-DIGITS
+                                       STAR(STAR-IDX).
+           MOVE 5 TO WS-FMT-DIGITS.
            CALL 'FMT-NUM' USING        LUMINOSITY(STAR-IDX),
-                                       WS-FMT-DIGITS, WS-TMP-STR
-           DISPLAY 'Luminosity 'FUNCTION TRIM(WS-TMP-STR)' × Sol'
+                                       WS-FMT-DIGITS, WS-TMP-STR.
+           DISPLAY 'Luminosity 'FUNCTION TRIM(WS-TMP-STR)' × Sol'.
 
            CALL 'DETERMINE-STAR-K'     USING SYSTEM-AGE                 surf. K
                        STELLAR-EVO OF WS-EVO-REC(MASS-INDEX(STAR-IDX))
-                                       STAR(STAR-IDX)
-           DISPLAY 'Surface temperature 'TEMPERATURE(STAR-IDX)'K'
+                                       STAR(STAR-IDX).
+           DISPLAY 'Surface temperature 'TEMPERATURE(STAR-IDX)'K'.
            
-           CALL 'DETERMINE-RADIUS' USING STAR(STAR-IDX)                 rad AU
-           MOVE 5 TO WS-FMT-DIGITS
+           CALL 'DETERMINE-RADIUS' USING STAR(STAR-IDX).                 rad AU
+           MOVE 5 TO WS-FMT-DIGITS.
            CALL 'FMT-NUM' USING        RADIUS(STAR-IDX),
-                                       WS-FMT-DIGITS, WS-TMP-STR
-           DISPLAY 'Radius 'FUNCTION TRIM(WS-TMP-STR)' AU'
+                                       WS-FMT-DIGITS, WS-TMP-STR.
+           DISPLAY 'Radius 'FUNCTION TRIM(WS-TMP-STR)' AU'.
 
-           PERFORM DETERMINE-ORBIT-LIMITS
+           PERFORM DETERMINE-ORBIT-LIMITS.
            EXIT PARAGRAPH.
 
        DETERMINE-ORBITAL-INFO.
@@ -460,4 +461,18 @@
            EXIT PARAGRAPH.
 
        DETERMINE-ORBITS.
+      *    First we count inward from GGA (or outer-limit if no
+      *    central GG is present).
+      D    DISPLAY '...calculating orbit distances from ' NO ADVANCING.
+      D    MOVE 2 TO WS-FMT-DIGITS.
+           IF NO-GAS-GIANT(STAR-IDX) THEN
+               COPY 1D6.
+               COMPUTE WS-TMP-NUM0 = ((D6 * 0.05) + 1)
+                     / OUTER-LIMIT OF ORBIT-LIMITS(STAR-IDX)
+           ELSE
+               MOVE DISTANCE OF GAS-GIANT-ARRANGEMENT(STAR-IDX)
+                 TO WS-TMP-NUM0
+           END-IF.
+      D    CALL 'FMT-NUM' USING WS-TMP-NUM0, WS-FMT-DIGITS, WS-TMP-STR.
+      D    DISPLAY FUNCTION TRIM(WS-TMP-STR)' AU inwards.'.
            EXIT PARAGRAPH.
