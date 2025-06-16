@@ -24,9 +24,11 @@
       * Random number generation:
        COPY RNG.                                                        D6 etc.
        01  WS-TMP-STR                  PIC X(100).
-       01  WS-TMP-NUM0                 USAGE COMP-2.
-       01  WS-TMP-NUM1                 USAGE COMP-2.
-       01  WS-TMP-NUM2                 USAGE COMP-2.
+       01  WS-TMP-N0                   USAGE COMP-2.
+       01  WS-TMP-N1                   USAGE COMP-2.
+       01  WS-TMP-N2                   USAGE COMP-2.
+       01  WS-DELTA                    USAGE COMP-2.
+       01  WS-RATIO                    USAGE COMP-2.
       *********************************
       * Parsed run params:
        01  PARSED-PARM.
@@ -109,6 +111,11 @@
       *        of ORBIT-ECCENTRICITY of their INFO.
            05  SEP-AVG-DISTANCE        USAGE COMP-2.                    AU
            05  ORBIT-ECCENTRICITY      USAGE COMP-2.
+       01  WS-TMP-ORBIT-COUNT          PIC 99 USAGE COMP-5 VALUE 0.
+       01  WS-TMP-ORBITS               OCCURS 0 TO 99 TIMES
+                                       DEPENDING ON WS-TMP-ORBIT-COUNT
+                                       INDEXED BY WS-TMP-ORB-IDX.
+           05  DISTANCE                USAGE COMP-2.
 
        LINKAGE SECTION.
        01  LK-PARM.
@@ -126,12 +133,12 @@
            PERFORM UNTIL PARM-INDEX > PARM-LEN
                INITIALIZE PARSED-FIELD
                UNSTRING LK-PARM-DATA   DELIMITED BY ','
-                                       INTO PARSED-FIELD
-                                       WITH POINTER PARM-INDEX
+                       INTO PARSED-FIELD
+                       WITH POINTER PARM-INDEX
                END-UNSTRING
                STRING FUNCTION TRIM(PARSED-FIELD)
-                                       DELIMITED BY SIZE
-                                       INTO PARSED-FIELD
+                       DELIMITED BY SIZE
+                       INTO PARSED-FIELD
                MOVE FUNCTION TRIM(PARSED-FIELD) TO PARSED-FIELD
 
                EVALUATE TRUE
@@ -184,7 +191,7 @@
                WHEN OTHER MOVE 3 TO STAR-COUNT
            END-EVALUATE.
            IF VERBOSE-OUTPUT THEN
-               DISPLAY 'Generating star system with '
+               DISPLAY 'Generating a star system with '
                        STAR-COUNT' star(s).'
            END-IF.
 
@@ -238,18 +245,18 @@
            EVALUATE TRUE
                WHEN CSV-LINE(1:1) = '#'
                    IF VERBOSE-OUTPUT THEN
-                     DISPLAY '#' NO ADVANCING
+                       DISPLAY '#' NO ADVANCING
                    END-IF
                    SET WAS-CSV-COMMENT TO TRUE
                    EXIT PARAGRAPH
                WHEN CSV-LINE(1:1) = 'M'
                    IF VERBOSE-OUTPUT THEN
-                     DISPLAY 'm' NO ADVANCING
+                       DISPLAY 'm' NO ADVANCING
                    END-IF
                    PERFORM PARSE-CSV-LINE-M
                WHEN OTHER
                    IF VERBOSE-OUTPUT THEN
-                     DISPLAY '.' NO ADVANCING
+                       DISPLAY '.' NO ADVANCING
                    END-IF
                    PERFORM PARSE-CSV-LINE-N
            END-EVALUATE
@@ -326,7 +333,7 @@
            
            IF  FUNCTION TRIM(WS-CSV-S-SPAN OF WS-EVO-CSV) = '-' THEN    Subgiant
                MOVE NOT-APPLICABLE                                      stage
-                    TO SPAN-S OF WS-EVO-REC(EVO-IDX)                    lifespan
+                 TO SPAN-S OF WS-EVO-REC(EVO-IDX)                       lifespan
            ELSE COMPUTE SPAN-S OF WS-EVO-REC(EVO-IDX) =                 
                    FUNCTION NUMVAL(
                     FUNCTION TRIM(
@@ -412,14 +419,14 @@
            
        DETERMINE-ORBIT-LIMITS.
       *    First, inner limit:
-           COMPUTE WS-TMP-NUM0 = 0.1 * MASS OF STAR(STAR-IDX).
-           COMPUTE WS-TMP-NUM1 =
+           COMPUTE WS-TMP-N0 = 0.1 * MASS OF STAR(STAR-IDX).
+           COMPUTE WS-TMP-N1 =
                    0.01 * FUNCTION SQRT(CURRENT-LUM(STAR-IDX)).
-           IF WS-TMP-NUM0 > WS-TMP-NUM1 THEN
-                MOVE WS-TMP-NUM0
-                     TO INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX)
-           ELSE MOVE WS-TMP-NUM1
-                     TO INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX).
+           IF WS-TMP-N0 > WS-TMP-N1 THEN
+                MOVE WS-TMP-N0
+                  TO INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX)
+           ELSE MOVE WS-TMP-N1
+                  TO INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX).
       D    DISPLAY 'Inner-limit at '
       D            INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX)' AU'
       *    Second, outer limit.  This is based on current mass.
@@ -446,16 +453,16 @@
                                        WS-FMT-DIGITS, WS-TMP-STR.
            DISPLAY FUNCTION TRIM(WS-TMP-STR)
                    ' eccentricity (' NO ADVANCING
-           COMPUTE WS-TMP-NUM0 =
+           COMPUTE WS-TMP-N0 =
                    (1 - ORBIT-ECCENTRICITY(SEP-IDX)) *
                    SEP-AVG-DISTANCE(SEP-IDX).
-           CALL 'FMT-NUM' USING        WS-TMP-NUM0, WS-FMT-DIGITS,
+           CALL 'FMT-NUM' USING        WS-TMP-N0, WS-FMT-DIGITS,
                                        WS-TMP-STR.
            DISPLAY FUNCTION TRIM(WS-TMP-STR)' → ' NO ADVANCING.
-           COMPUTE WS-TMP-NUM0 =
+           COMPUTE WS-TMP-N0 =
                    (1 + ORBIT-ECCENTRICITY(SEP-IDX)) *
                    SEP-AVG-DISTANCE(SEP-IDX).
-           CALL 'FMT-NUM' USING        WS-TMP-NUM0, WS-FMT-DIGITS,
+           CALL 'FMT-NUM' USING        WS-TMP-N0, WS-FMT-DIGITS,
                                        WS-TMP-STR.
            DISPLAY FUNCTION TRIM(WS-TMP-STR)').'.
            EXIT PARAGRAPH.
@@ -467,12 +474,103 @@
       D    MOVE 2 TO WS-FMT-DIGITS.
            IF NO-GAS-GIANT(STAR-IDX) THEN
                COPY 1D6.
-               COMPUTE WS-TMP-NUM0 = ((D6 * 0.05) + 1)
+               COMPUTE WS-TMP-N0 = ((D6 * 0.05) + 1)
                      / OUTER-LIMIT OF ORBIT-LIMITS(STAR-IDX)
            ELSE
                MOVE DISTANCE OF GAS-GIANT-ARRANGEMENT(STAR-IDX)
-                 TO WS-TMP-NUM0
+                 TO WS-TMP-N0
            END-IF.
-      D    CALL 'FMT-NUM' USING WS-TMP-NUM0, WS-FMT-DIGITS, WS-TMP-STR.
-      D    DISPLAY FUNCTION TRIM(WS-TMP-STR)' AU inwards.'.
+      D    CALL 'FMT-NUM' USING WS-TMP-N0, WS-FMT-DIGITS, WS-TMP-STR.
+      D    DISPLAY FUNCTION TRIM(WS-TMP-STR)' AU inwards:'.
+           
+           MOVE 1 TO WS-TMP-ORBIT-COUNT
+           SET WS-TMP-ORB-IDX TO 1
+      *    WS-TMP-N0 will hold the "current distance".
+           MOVE WS-TMP-N0 TO DISTANCE OF WS-TMP-ORBITS(WS-TMP-ORB-IDX)
+           MOVE WS-TMP-N0 TO WS-TMP-N1
+           PERFORM VARYING WS-TMP-ORB-IDX FROM 2 BY 1 UNTIL 1 = 2       !forever
+      D        CALL 'FMT-NUM' USING    WS-TMP-N0, WS-FMT-DIGITS,
+      D                                WS-TMP-STR
+      D        DISPLAY '     F ⇢ ~'FUNCTION TRIM(WS-TMP-STR)
+      D                NO ADVANCING
+               COMPUTE WS-RATIO = COPY ORBSPCFN.
+      D        CALL 'FMT-NUM' USING    WS-RATIO, WS-FMT-DIGITS,
+      D                                WS-TMP-STR
+      D        DISPLAY ' r/~'FUNCTION TRIM(WS-TMP-STR) NO ADVANCING
+      *        WS-TMP-N1 will hold the final distance (in AU).
+               COMPUTE WS-TMP-N1 = WS-TMP-N1 / WS-RATIO
+      *        Calculate the delta and see if it's too small…
+               COMPUTE WS-DELTA = WS-TMP-N0 - WS-TMP-N1
+               IF WS-DELTA < MIN-ORBIT-GAP THEN
+      D            DISPLAY ' d/(using 'MIN-ORBIT-GAP')' NO ADVANCING
+                   COMPUTE WS-TMP-N1 = WS-TMP-N0 - MIN-ORBIT-GAP
+               ELSE
+      D            CALL 'FMT-NUM' USING WS-DELTA, WS-FMT-DIGITS,
+      D                                WS-TMP-STR
+      D            DISPLAY ' d/~'FUNCTION TRIM(WS-TMP-STR) NO ADVANCING
+               END-IF
+               IF WS-TMP-N1 < INNER-LIMIT OF ORBIT-LIMITS(STAR-IDX)
+                   THEN
+      D            DISPLAY '!  would be inside inner-limit …'
+                   EXIT PERFORM
+               END-IF
+
+               ADD 1 TO WS-TMP-ORBIT-COUNT
+               MOVE WS-TMP-N1
+                 TO DISTANCE OF WS-TMP-ORBITS(WS-TMP-ORB-IDX)
+      D        DISPLAY ' = 'DISTANCE OF WS-TMP-ORBITS(WS-TMP-ORB-IDX)
+      *        New 'current distance' for closing up toward the star.
+               MOVE WS-TMP-N1 TO WS-TMP-N0
+           END-PERFORM.
+
+           SET WS-TMP-ORB-IDX DOWN BY 1                                 - offset
+      *    Start filling the orbit distances to actual storage in
+      *    reverse order of the above generation phase.
+           PERFORM VARYING ORB-IDX
+                           FROM 1 BY 1
+                           UNTIL WS-TMP-ORBIT-COUNT = 0
+               MOVE CORR WS-TMP-ORBITS(WS-TMP-ORB-IDX)
+                      TO ORBITS(STAR-IDX, ORB-IDX)
+               SET WS-TMP-ORB-IDX DOWN BY 1
+               SUBTRACT 1 FROM WS-TMP-ORBIT-COUNT
+           END-PERFORM.
+
+      *    Now the orbits outward from the "central orbit".  Naturally,
+      *    we abort the building phase when outer limit is reached —
+      *    anything beyond that would either not form at all or would be
+      *    flung out from the system altogether.
+           SET DST-ORB-IDX TO ORB-IDX.
+           SET ORB-IDX DOWN BY 1.
+      D    DISPLAY '...calculating orbit distances from ' NO ADVANCING.
+      D    CALL 'FMT-NUM' USING DISTANCE OF ORBITS(STAR-IDX, ORB-IDX),
+      D                         WS-FMT-DIGITS, WS-TMP-STR.
+      D    DISPLAY FUNCTION TRIM(WS-TMP-STR)' AU outwards:'.
+           MOVE 0.0 TO WS-TMP-N0
+           PERFORM VARYING DST-ORB-IDX
+                           FROM DST-ORB-IDX BY 1
+                           UNTIL WS-TMP-N0 > OUTER-LIMIT
+                                             OF ORBIT-LIMITS(STAR-IDX)
+      *                          OR EXIT
+               COMPUTE WS-DELTA = COPY ORBSPCFN.
+               COMPUTE WS-TMP-N0
+                     = DISTANCE OF ORBITS(STAR-IDX, ORB-IDX)
+                     * WS-DELTA
+      D        CALL 'FMT-NUM' USING
+      D                    DISTANCE OF ORBITS(STAR-IDX, ORB-IDX),
+      D                    WS-FMT-DIGITS, WS-TMP-STR
+      D        DISPLAY '     F ⇢ ~'FUNCTION TRIM(WS-TMP-STR)
+      D                NO ADVANCING
+      D        CALL 'FMT-NUM' USING WS-DELTA, WS-FMT-DIGITS, WS-TMP-STR
+      D        DISPLAY ' r/~'FUNCTION TRIM(WS-TMP-STR) NO ADVANCING
+               IF WS-TMP-N0 > OUTER-LIMIT OF ORBIT-LIMITS(STAR-IDX)
+                   THEN
+      D            DISPLAY '!  would exceed outer-limit …'
+                   EXIT PERFORM
+               END-IF
+
+      D        DISPLAY ' = 'WS-TMP-N0
+               MOVE WS-TMP-N0
+                 TO DISTANCE OF ORBITS(STAR-IDX, DST-ORB-IDX)
+               SET ORB-IDX UP BY 1
+           END-PERFORM.
            EXIT PARAGRAPH.

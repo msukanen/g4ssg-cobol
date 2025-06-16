@@ -21,7 +21,7 @@
                10  ORBIT-LIMITS.
                    COPY ORBLIM.
                10  FORBIDDEN-ZONE-COUNT PIC 99 VALUE 0.
-               10  FORBIDDEN-ZONES     OCCURS 99 TIMES
+               10  FORBIDDEN-ZONES     OCCURS 99 TIMES                    H0X!
                                        INDEXED BY FZ-IDX.
                    15  INNER-LIMIT     USAGE COMP-2.                    AU
                    15  OUTER-LIMIT     USAGE COMP-2.                    AU
@@ -29,6 +29,6 @@
                    15  ARRANGEMENT     PIC X VALUE '-'.
                        COPY GGARR.cpy.
                    15  DISTANCE        USAGE COMP-2.                    AU
-               10  ORBITS              OCCURS 200 TIMES
-                                       INDEXED BY ORB-IDX.
+               10  ORBITS              OCCURS 200 TIMES                   H0X!
+                                       INDEXED BY ORB-IDX, DST-ORB-IDX.
                    15  DISTANCE        USAGE COMP-2.                    AU
