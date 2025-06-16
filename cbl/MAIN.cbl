@@ -220,7 +220,9 @@
                                        ORBIT-LIMITS(STAR-IDX),
                                        GAS-GIANT-ARRANGEMENT(STAR-IDX)
                DISPLAY 'Gas giant arrangement: 'ARRANGEMENT(STAR-IDX)
+               
                PERFORM DETERMINE-ORBITS
+               PERFORM PLACE-PLANETS-AND-BELTS
 
                SET SEP-IDX UP BY 1
                SET PREV-SEP-IDX UP BY 1
@@ -467,8 +469,8 @@
            DISPLAY FUNCTION TRIM(WS-TMP-STR)').'.
            EXIT PARAGRAPH.
 
-       DETERMINE-ORBITS.
-      *    First we count inward from GGA (or outer-limit if no
+       DETERMINE-ORBITS.                                                pp.108-
+      *    First we count inward from GGA (or outer-limit if no            109
       *    central GG is present).
       D    DISPLAY '...calculating orbit distances from ' NO ADVANCING.
       D    MOVE 2 TO WS-FMT-DIGITS.
@@ -573,4 +575,9 @@
                  TO DISTANCE OF ORBITS(STAR-IDX, DST-ORB-IDX)
                SET ORB-IDX UP BY 1
            END-PERFORM.
+           EXIT PARAGRAPH.
+
+       PLACE-PLANETS-AND-BELTS.                                         p.110
+      *    Placing planets begins with gas giants (that is, if there is
+      *    any to begin with).
            EXIT PARAGRAPH.

@@ -30,5 +30,9 @@
                        COPY GGARR.cpy.
                    15  DISTANCE        USAGE COMP-2.                    AU
                10  ORBITS              OCCURS 200 TIMES                   H0X!
-                                       INDEXED BY ORB-IDX, DST-ORB-IDX.
+                                       INDEXED BY ORB-IDX,
+                                                  DST-ORB-IDX,
+                                                  PREV-ORB-IDX.
                    15  DISTANCE        USAGE COMP-2.                    AU
+                   15  OBJ             PIC X.
+                       COPY ORBELEM.cpy.
