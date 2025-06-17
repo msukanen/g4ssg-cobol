@@ -29,10 +29,16 @@
                    15  ARRANGEMENT     PIC X VALUE '-'.
                        COPY GGARR.cpy.
                    15  DISTANCE        USAGE COMP-2.                    AU
-               10  ORBITS              OCCURS 200 TIMES                   H0X!
+               10  NUM-ORBITS          PIC 999 VALUE 0.
+               10  ORBIT               OCCURS 200 TIMES                   H0X!
                                        INDEXED BY ORB-IDX,
                                                   DST-ORB-IDX,
-                                                  PREV-ORB-IDX.
+                                                  PREV-ORB-IDX,
+                                                  NEXT-ORB-IDX.
                    15  DISTANCE        USAGE COMP-2.                    AU
-                   15  OBJ             PIC X.
+      *                Object's type, or '-' if nothing.
+                   15  OBJ             PIC X VALUE '-'.
                        COPY ORBELEM.cpy.
+      *                Object referers to this index.  Table itself
+      *                depends on the above OBJ value.
+                   15  OBJ-REF         INDEX.

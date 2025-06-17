@@ -1,7 +1,7 @@
        IDENTIFICATION DIVISION.
        PROGRAM-ID.   G4SSGCRE.
        AUTHOR.       Markku Sukanen.
-       DATE-WRITTEN. June 3 — June 9, 2025
+       DATE-WRITTEN. May 25 — June 9, 2025.
       ******************************************************************
       *
       * Star system generator, based on "GURPS 4e Space" rules.
@@ -29,6 +29,10 @@
        01  WS-TMP-N2                   USAGE COMP-2.
        01  WS-DELTA                    USAGE COMP-2.
        01  WS-RATIO                    USAGE COMP-2.
+       01  WS-COUNT                    PIC 999 USAGE COMP-5.
+       01  WS-GG                       PIC X.
+           88  IS-GG                   VALUE 'Y'
+                                       WHEN SET TO FALSE IS 'N'.
       *********************************
       * Parsed run params:
        01  PARSED-PARM.
@@ -111,11 +115,35 @@
       *        of ORBIT-ECCENTRICITY of their INFO.
            05  SEP-AVG-DISTANCE        USAGE COMP-2.                    AU
            05  ORBIT-ECCENTRICITY      USAGE COMP-2.
-       01  WS-TMP-ORBIT-COUNT          PIC 99 USAGE COMP-5 VALUE 0.
-       01  WS-TMP-ORBITS               OCCURS 0 TO 99 TIMES
+       01  WS-TMP-ORBIT-COUNT          PIC 999 USAGE COMP-5 VALUE 0.
+       01  WS-TMP-ORBIT                OCCURS 0 TO 200 TIMES
                                        DEPENDING ON WS-TMP-ORBIT-COUNT
                                        INDEXED BY WS-TMP-ORB-IDX.
            05  DISTANCE                USAGE COMP-2.
+      *********************************
+      * Asteroid belt data.
+      *
+       01  WS-BELT-COUNT               PIC 999 USAGE COMP-5 VALUE 0.
+       01  WS-OBJ-ASTEROID-BELT        OCCURS 0 TO 200 TIMES
+                                       DEPENDING ON WS-BELT-COUNT
+                                       INDEXED BY BELT-IDX.
+           COPY ABELTINF.
+      *********************************
+      * Terrestrial planet data.
+      *
+       01  WS-TERRA-COUNT              PIC 999 USAGE COMP-5 VALUE 0.
+       01  WS-OBJ-TERRESTRIAL          OCCURS 0 TO 200 TIMES
+                                       DEPENDING ON WS-TERRA-COUNT
+                                       INDEXED BY TERRA-IDX.
+           COPY TERRAINF.
+      *********************************
+      * Gas giant data.
+      *
+       01  WS-GG-COUNT                 PIC 999 USAGE COMP-5 VALUE 0.
+       01  WS-OBJ-GAS-GIANT            OCCURS 0 TO 200 TIMES
+                                       DEPENDING ON WS-GG-COUNT
+                                       INDEXED BY GG-IDX.
+           COPY GGINF.
 
        LINKAGE SECTION.
        01  LK-PARM.
@@ -195,6 +223,10 @@
                        STAR-COUNT' star(s).'
            END-IF.
 
+      *    Some index priming:
+           SET BELT-IDX TO 1.
+           SET TERRA-IDX TO 1.
+           SET GG-IDX TO 1.
       *    Third, generate the star(s).
            SET SEP-IDX TO 1.
            SET PREV-SEP-IDX TO SEP-IDX.
@@ -381,7 +413,7 @@
            
            CALL 'DETERMINE-RADIUS' USING STAR(STAR-IDX).                 rad AU
            MOVE 5 TO WS-FMT-DIGITS.
-           CALL 'FMT-NUM' USING        RADIUS(STAR-IDX),
+           CALL 'FMT-NUM' USING        RADIUS OF STAR(STAR-IDX),
                                        WS-FMT-DIGITS, WS-TMP-STR.
            DISPLAY 'Radius 'FUNCTION TRIM(WS-TMP-STR)' AU'.
 
@@ -485,10 +517,11 @@
       D    CALL 'FMT-NUM' USING WS-TMP-N0, WS-FMT-DIGITS, WS-TMP-STR.
       D    DISPLAY FUNCTION TRIM(WS-TMP-STR)' AU inwards:'.
            
-           MOVE 1 TO WS-TMP-ORBIT-COUNT
            SET WS-TMP-ORB-IDX TO 1
+           MOVE 1 TO WS-TMP-ORBIT-COUNT
+           MOVE 1 TO NUM-ORBITS(STAR-IDX)
       *    WS-TMP-N0 will hold the "current distance".
-           MOVE WS-TMP-N0 TO DISTANCE OF WS-TMP-ORBITS(WS-TMP-ORB-IDX)
+           MOVE WS-TMP-N0 TO DISTANCE OF WS-TMP-ORBIT(WS-TMP-ORB-IDX)
            MOVE WS-TMP-N0 TO WS-TMP-N1
            PERFORM VARYING WS-TMP-ORB-IDX FROM 2 BY 1 UNTIL 1 = 2       !forever
       D        CALL 'FMT-NUM' USING    WS-TMP-N0, WS-FMT-DIGITS,
@@ -518,9 +551,10 @@
                END-IF
 
                ADD 1 TO WS-TMP-ORBIT-COUNT
+               ADD 1 TO NUM-ORBITS(STAR-IDX)
                MOVE WS-TMP-N1
-                 TO DISTANCE OF WS-TMP-ORBITS(WS-TMP-ORB-IDX)
-      D        DISPLAY ' = 'DISTANCE OF WS-TMP-ORBITS(WS-TMP-ORB-IDX)
+                 TO DISTANCE OF WS-TMP-ORBIT(WS-TMP-ORB-IDX)
+      D        DISPLAY ' = 'DISTANCE OF WS-TMP-ORBIT(WS-TMP-ORB-IDX)
       *        New 'current distance' for closing up toward the star.
                MOVE WS-TMP-N1 TO WS-TMP-N0
            END-PERFORM.
@@ -531,20 +565,25 @@
            PERFORM VARYING ORB-IDX
                            FROM 1 BY 1
                            UNTIL WS-TMP-ORBIT-COUNT = 0
-               MOVE CORR WS-TMP-ORBITS(WS-TMP-ORB-IDX)
-                      TO ORBITS(STAR-IDX, ORB-IDX)
+               MOVE CORR WS-TMP-ORBIT(WS-TMP-ORB-IDX)
+                      TO ORBIT(STAR-IDX, ORB-IDX)
                SET WS-TMP-ORB-IDX DOWN BY 1
                SUBTRACT 1 FROM WS-TMP-ORBIT-COUNT
            END-PERFORM.
 
-      *    Now the orbits outward from the "central orbit".  Naturally,
+      *    Now the ORBIT outward from the "central orbit".  Naturally,
       *    we abort the building phase when outer limit is reached —
       *    anything beyond that would either not form at all or would be
       *    flung out from the system altogether.
            SET DST-ORB-IDX TO ORB-IDX.
            SET ORB-IDX DOWN BY 1.
+      *    Mark the 1st GG, if present.
+           IF NOT NO-GAS-GIANT(STAR-IDX) THEN
+      D        DISPLAY 'Plugging in a GG at ('STAR-IDX','ORB-IDX').'
+               PERFORM GEN-GAS-GIANT
+           END-IF
       D    DISPLAY '...calculating orbit distances from ' NO ADVANCING.
-      D    CALL 'FMT-NUM' USING DISTANCE OF ORBITS(STAR-IDX, ORB-IDX),
+      D    CALL 'FMT-NUM' USING DISTANCE OF ORBIT(STAR-IDX, ORB-IDX),
       D                         WS-FMT-DIGITS, WS-TMP-STR.
       D    DISPLAY FUNCTION TRIM(WS-TMP-STR)' AU outwards:'.
            MOVE 0.0 TO WS-TMP-N0
@@ -555,10 +594,10 @@
       *                          OR EXIT
                COMPUTE WS-DELTA = COPY ORBSPCFN.
                COMPUTE WS-TMP-N0
-                     = DISTANCE OF ORBITS(STAR-IDX, ORB-IDX)
+                     = DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
                      * WS-DELTA
       D        CALL 'FMT-NUM' USING
-      D                    DISTANCE OF ORBITS(STAR-IDX, ORB-IDX),
+      D                    DISTANCE OF ORBIT(STAR-IDX, ORB-IDX),
       D                    WS-FMT-DIGITS, WS-TMP-STR
       D        DISPLAY '     F ⇢ ~'FUNCTION TRIM(WS-TMP-STR)
       D                NO ADVANCING
@@ -572,12 +611,100 @@
 
       D        DISPLAY ' = 'WS-TMP-N0
                MOVE WS-TMP-N0
-                 TO DISTANCE OF ORBITS(STAR-IDX, DST-ORB-IDX)
+                 TO DISTANCE OF ORBIT(STAR-IDX, DST-ORB-IDX)
                SET ORB-IDX UP BY 1
+               ADD 1 TO NUM-ORBITS(STAR-IDX)
            END-PERFORM.
            EXIT PARAGRAPH.
 
        PLACE-PLANETS-AND-BELTS.                                         p.110
       *    Placing planets begins with gas giants (that is, if there is
       *    any to begin with).
+           IF NOT NO-GAS-GIANT(STAR-IDX) THEN
+               PERFORM PLACE-GAS-GIANTS
+           END-IF.
+      *    And now we place the other thingies into orbit(s), if any
+      *    present.  Some of the orbits may well be empty.
+           EXIT PARAGRAPH.
+
+       PLACE-GAS-GIANTS.
+           COMPUTE WS-COUNT = NUM-ORBITS(STAR-IDX).
+           SET ORB-IDX TO 1.
+           PERFORM VARYING WS-COUNT
+                   FROM WS-COUNT BY -1
+                   UNTIL WS-COUNT = 0
+      *        Skip any already defined celestial object(s).
+               IF NOT OBJ-NOTHING(STAR-IDX, ORB-IDX) THEN
+                   SET ORB-IDX UP BY 1
+                   CONTINUE
+               END-IF
+
+               COPY 3D6.
+               SET IS-GG TO FALSE
+               IF (CONVENTIONAL-GG(STAR-IDX)
+                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
+                           >= SNOW-LINE OF STAR(STAR-IDX))
+                     AND D6 <= 15) OR
+                  (ECCENTRIC-GG(STAR-IDX)
+                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
+                           < SNOW-LINE OF STAR(STAR-IDX))
+                     AND D6 <= 8) OR
+                  (ECCENTRIC-GG(STAR-IDX)
+                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
+                           >= SNOW-LINE OF STAR(STAR-IDX))
+                     AND D6 <= 14) OR
+                  (EPISTELLAR-GG(STAR-IDX)
+                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
+                           < SNOW-LINE OF STAR(STAR-IDX))
+                     AND D6 <= 6) OR
+                  (EPISTELLAR-GG(STAR-IDX)
+                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
+                           >= SNOW-LINE OF STAR(STAR-IDX))
+                     AND D6 <= 14)
+               THEN
+                   SET OBJ-GAS-GIANT(STAR-IDX, ORB-IDX) TO TRUE
+               END-IF
+               SET ORB-IDX UP BY 1
+           END-PERFORM.
+           EXIT PARAGRAPH.
+
+       GEN-GAS-GIANT.
+           SET OBJ-GAS-GIANT(STAR-IDX, ORB-IDX) TO TRUE.
+           SET OBJ-REF(STAR-IDX, ORB-IDX) TO GG-IDX.
+           
+           COPY 3D6.
+           IF DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
+              < SNOW-LINE(STAR-IDX) THEN                                TODO
+      *        TODO: check whether 1st orbit beyond snow line.
+               COMPUTE D6 = D6 + 4
+           END-IF
+           EVALUATE TRUE
+               WHEN D6 <= 10
+                   SET GG-SMALL(GG-IDX) TO TRUE
+               WHEN D6 <= 16
+                   SET GG-MEDIUM(GG-IDX) TO TRUE
+               WHEN OTHER
+                   SET GG-LARGE(GG-IDX) TO TRUE
+           END-EVALUATE.
+
+           SET GG-IDX UP BY 1.                                          4-future
+           EXIT PARAGRAPH.
+
+       SYNC-ALL-ORB-IDX.
+           SET PREV-ORB-IDX TO ORB-IDX.
+           SET NEXT-ORB-IDX TO ORB-IDX.
+           SET PREV-ORB-IDX DOWN BY 1.
+           SET NEXT-ORB-IDX UP BY 1.
+           EXIT PARAGRAPH.
+
+       SYNC-ADD-1-TO-ORB-IDX.
+           SET ORB-IDX UP BY 1.
+           SET PREV-ORB-IDX UP BY 1.
+           SET NEXT-ORB-IDX UP BY 1.
+           EXIT PARAGRAPH.
+
+       SYNC-SUBTRACT-1-FROM-ORB-IDX.
+           SET ORB-IDX DOWN BY 1.
+           SET PREV-ORB-IDX DOWN BY 1.
+           SET NEXT-ORB-IDX DOWN BY 1.
            EXIT PARAGRAPH.
