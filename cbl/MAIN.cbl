@@ -23,15 +23,20 @@
       *********************************
       * Random number generation:
        COPY RNG.                                                        D6 etc.
-       01  WS-TMP-STR                  PIC X(100).
+       01  WS-TMP-STR                  PIC X(100).                      FMT-NUM
        01  WS-TMP-N0                   USAGE COMP-2.
        01  WS-TMP-N1                   USAGE COMP-2.
        01  WS-TMP-N2                   USAGE COMP-2.
-       01  WS-DELTA                    USAGE COMP-2.
-       01  WS-RATIO                    USAGE COMP-2.
-       01  WS-COUNT                    PIC 999 USAGE COMP-5.
-       01  WS-GG                       PIC X.
+       01  WS-DELTA                    USAGE COMP-2.                    helper
+       01  WS-RATIO                    USAGE COMP-2.                    helper
+       01  WS-COUNT                    PIC 999 USAGE COMP-5.            helper
+       01  WS-GG                       PIC X.                           helper
            88  IS-GG                   VALUE 'Y'
+                                       WHEN SET TO FALSE IS 'N'.
+       01  WS-DISTANCE                 USAGE COMP-2.                    helper
+       01  WS-SNOW-LINE                USAGE COMP-2.                    helper
+       01  WS-ADJACENT-INNER-OUTER     PIC X.
+           88  IS-ADJACENT             VALUE 'Y'
                                        WHEN SET TO FALSE IS 'N'.
       *********************************
       * Parsed run params:
@@ -625,6 +630,21 @@
            END-IF.
       *    And now we place the other thingies into orbit(s), if any
       *    present.  Some of the orbits may well be empty.
+           PERFORM INIT-ALL-ORB-IDX.
+           PERFORM VARYING ORB-IDX FROM 1 BY 1
+                   UNTIL ORB-IDX > NUM-ORBITS(STAR-IDX)
+               IF NOT OBJ-NOTHING(STAR-IDX, ORB-IDX)                    Skip the
+                   CONTINUE                                             occupied
+               END-IF                                                   orbits.
+               COPY 3D6.
+               IF OBJ-GAS-GIANT(STAR-IDX, NEXT-ORB-IDX) THEN
+                   COMPUTE D6 = D6 - 6
+               END-IF
+               IF OBJ-GAS-GIANT(STAR-IDX, PREV-ORB-IDX) THEN
+                   COMPUTE D6 = D6 - 3
+               END-IF
+               
+           END-PERFORM.
            EXIT PARAGRAPH.
 
        PLACE-GAS-GIANTS.
@@ -635,36 +655,32 @@
                    UNTIL WS-COUNT = 0
       *        Skip any already defined celestial object(s).
                IF NOT OBJ-NOTHING(STAR-IDX, ORB-IDX) THEN
-                   SET ORB-IDX UP BY 1
+                   PERFORM SYNC-ADD-1-TO-ORB-IDX
                    CONTINUE
                END-IF
 
+               MOVE DISTANCE OF ORBIT(STAR-IDX, ORB-IDX) TO WS-DISTANCE
+               MOVE SNOW-LINE OF STAR(STAR-IDX) TO WS-SNOW-LINE
+               
                COPY 3D6.
                SET IS-GG TO FALSE
-               IF (CONVENTIONAL-GG(STAR-IDX)
-                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
-                           >= SNOW-LINE OF STAR(STAR-IDX))
-                     AND D6 <= 15) OR
-                  (ECCENTRIC-GG(STAR-IDX)
-                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
-                           < SNOW-LINE OF STAR(STAR-IDX))
-                     AND D6 <= 8) OR
-                  (ECCENTRIC-GG(STAR-IDX)
-                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
-                           >= SNOW-LINE OF STAR(STAR-IDX))
-                     AND D6 <= 14) OR
-                  (EPISTELLAR-GG(STAR-IDX)
-                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
-                           < SNOW-LINE OF STAR(STAR-IDX))
-                     AND D6 <= 6) OR
-                  (EPISTELLAR-GG(STAR-IDX)
-                     AND (DISTANCE OF ORBIT(STAR-IDX, ORB-IDX)
-                           >= SNOW-LINE OF STAR(STAR-IDX))
-                     AND D6 <= 14)
-               THEN
-                   SET OBJ-GAS-GIANT(STAR-IDX, ORB-IDX) TO TRUE
-               END-IF
-               SET ORB-IDX UP BY 1
+               EVALUATE TRUE
+                   WHEN CONVENTIONAL-GG(STAR-IDX)
+                       IF (WS-DISTANCE >= WS-SNOW-LINE) AND (D6 <= 15)
+                           SET OBJ-GAS-GIANT(STAR-IDX, ORB-IDX) TO TRUE
+                       END-IF
+                   WHEN ECCENTRIC-GG(STAR-IDX)
+                       IF ((WS-DISTANCE < WS-SNOW-LINE) AND (D6 <= 8))
+                       OR ((WS-DISTANCE >= WS-SNOW-LINE) AND (D6 <= 14))
+                           SET OBJ-GAS-GIANT(STAR-IDX, ORB-IDX) TO TRUE
+                       END-IF
+                   WHEN EPISTELLAR-GG(STAR-IDX)
+                       IF ((WS-DISTANCE < WS-SNOW-LINE) AND (D6 <= 6))
+                       OR ((WS-DISTANCE >= WS-SNOW-LINE) AND (D6 <= 14))
+                           SET OBJ-GAS-GIANT(STAR-IDX, ORB-IDX) TO TRUE
+                       END-IF
+               END-EVALUATE
+               PERFORM SYNC-ADD-1-TO-ORB-IDX
            END-PERFORM.
            EXIT PARAGRAPH.
 
@@ -698,13 +714,25 @@
            EXIT PARAGRAPH.
 
        SYNC-ADD-1-TO-ORB-IDX.
+      *    For sync'ing to function properly, PREV-/NEXT-ORB-IDX have to
+      *    be pre-synced with e.g. SYNC-ALL-ORB-IDX or INIT-ALL-ORB-IDX.
            SET ORB-IDX UP BY 1.
            SET PREV-ORB-IDX UP BY 1.
            SET NEXT-ORB-IDX UP BY 1.
            EXIT PARAGRAPH.
 
        SYNC-SUBTRACT-1-FROM-ORB-IDX.
+      *    For sync'ing to function properly, PREV-/NEXT-ORB-IDX have to
+      *    be pre-synced with e.g. SYNC-ALL-ORB-IDX or INIT-ALL-ORB-IDX.
            SET ORB-IDX DOWN BY 1.
            SET PREV-ORB-IDX DOWN BY 1.
            SET NEXT-ORB-IDX DOWN BY 1.
            EXIT PARAGRAPH.
+
+       INIT-ALL-ORB-IDX.
+           SET ORB-IDX TO 1.
+           PERFORM SYNC-ALL-ORB-IDX.
+           EXIT PARAGRAPH.
+
+       CHECK-LIMIT-ADJACENCY.
+       
